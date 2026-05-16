@@ -7,12 +7,12 @@ import os
 
 INTERVAL = 300                                                  # 5-min interval
 
-#---API KEYS--------------------
+# ── API KEYS ───────────────────────────────────────────────────────────────────
 load_dotenv()
 DUNE_API_KEY = os.getenv("DUNE_API_KEY")
 UNISWAP_API_KEY = os.getenv("UNISWAP_API_KEY")
 
-#---Directories-----------------
+# ── Directories ────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "DATA")                       # data directory
 DEX_DIR = os.path.join(DATA_DIR, "DEX")                         # all the uniswap data
@@ -20,29 +20,29 @@ DEX_POOL = os.path.join(DEX_DIR, "pool")                        # pool data
 DEX_MINTS_BURNS = os.path.join(DEX_DIR, "mints_burns")          # pool mints & burns
 DEX_TICKS = os.path.join(DEX_DIR, "ticks")                      # pool ticks
 DEX_SWAPS = os.path.join(DEX_DIR, "swaps_klines")               # pool swaps & klines from it
-#-----
+
 CEX_DIR = os.path.join(DATA_DIR, "CEX")                         # for data.vision.binance Klines and orderbook
 CEX_KLINES = os.path.join(CEX_DIR, "klines")                    # only for downloaded klines
 CEX_ORDERBOOK = os.path.join(CEX_DIR, "orderbook")              # local orderbook snapshots
-#-----
+
 DUNE_DIR = os.path.join(DATA_DIR, "ONCHAIN")                    # here all query responses can be fetched, because it is all in one file already
-#-----
+
 AGGREGATE_OUTPUT = os.path.join(DATA_DIR, "final")              # for the 5min aggregation
-#-----
+
 RESULTS_DIR = os.path.join(BASE_DIR, "MODEL_RESULTS")
 TRAIN_RESULTS = os.path.join(RESULTS_DIR, "training_results.txt")
 GARCH_OUTPUT = os.path.join(RESULTS_DIR, "garch_output.csv")
 BEST_MODEL = os.path.join(RESULTS_DIR, "best_model.pt")        
 MODEL_CONFIG = os.path.join(RESULTS_DIR, "model_config.json")  
 
-#---Binance---------------------
+# ── Binance ────────────────────────────────────────────────────────────────────
 BINANCE_SYMBOL = "usdcusdt"
 BINANCE_ORDERBOOK_DEPTH = 20
 BINANCE_SNAP_LIMIT = 1000
 BINANCE_REST_URL = f"https://api.binance.com/api/v3/depth?symbol={BINANCE_SYMBOL.upper()}&limit={BINANCE_SNAP_LIMIT}"
 BINANCE_WEBSOCKET = f"wss://stream.binance.com:9443/ws/{BINANCE_SYMBOL}@depth@100ms"
 
-#---Uniswap---------------------
+# ── Uniswap ────────────────────────────────────────────────────────────────────
 UNISWAP_SUBGRAPH_ID = (
     "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"              # Uniswap v3 ID
 )    
@@ -57,7 +57,7 @@ UNISWAP_TOKEN1_DECIMAL_PLACES = 6                               # USDT
 UNISWAP_LARGE_TRADE_THRESHOLD = 100_000                         # What is considered a large trade
 # I found the subgraph ID here: https://thegraph.com/explorer/subgraphs/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV?view=Query&chain=arbitrum-one
 
-#---Dune------------------------
+# ── Dune ───────────────────────────────────────────────────────────────────────
 DUNE_START_DATE = "2026-01-01"
 DUNE_END_DATE = "2026-01-31"
 DUNE_WHALE_THRESHOLD = 1000000                                  # for query 1
@@ -65,7 +65,7 @@ DUNE_BASE_URL = "https://api.dune.com/api/v1"
 DUNE_POLL_INTERVAL = 5                                          # seconds between status checks
 DUNE_RESULTS_PER_PAGE = 10000                                   # rows per results page (max Dune allows)
 
-#---Training--------------------
+# ── Training ───────────────────────────────────────────────────────────────────
 HIDDEN_LAYERS = 32
 LEARNING_RATE = 1e-4
 WEIGHT_DECAY = 1e-4
@@ -75,6 +75,6 @@ CLIP_NORM = 1.0                                                 # gradient clipp
 ALPHA_SCALE_A = None                                            # scaling alpha
 BETA_SCALE_B = None                                             # scaling beta
 
-#---Evaluation------------------
+# ── Evaluation ─────────────────────────────────────────────────────────────────
 PERMUTATION_REPETITIONS = 10                                    # permutation repetitions per feature (more = less noisy)
 ACF_LAGS = 40                                                   # already used in the notebook too
