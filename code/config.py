@@ -58,8 +58,8 @@ UNISWAP_LARGE_TRADE_THRESHOLD = 100_000                         # What is consid
 # I found the subgraph ID here: https://thegraph.com/explorer/subgraphs/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV?view=Query&chain=arbitrum-one
 
 # ── Dune ───────────────────────────────────────────────────────────────────────
-DUNE_START_DATE = "2026-01-01"
-DUNE_END_DATE = "2026-01-31"
+DUNE_START_DATE = "2026-01-01 00:00:00"
+DUNE_END_DATE = "2026-01-31 00:00:00"
 DUNE_WHALE_THRESHOLD = 1000000                                  # for query 1
 DUNE_BASE_URL = "https://api.dune.com/api/v1"
 DUNE_POLL_INTERVAL = 5                                          # seconds between status checks

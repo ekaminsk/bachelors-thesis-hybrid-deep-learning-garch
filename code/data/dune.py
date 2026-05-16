@@ -1,11 +1,12 @@
 
-import os, time, csv, requests
+import os, time, requests
+import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from config import DUNE_API_KEY, DUNE_START_DATE, DUNE_END_DATE, DUNE_WHALE_THRESHOLD, DUNE_DIR, DUNE_BASE_URL, DUNE_POLL_INTERVAL, DUNE_RESULTS_PER_PAGE
 from utilities import save_csv
 from datetime import datetime, timezone
 
 # ── Query definitions ──────────────────────────────────────────────────────────
-
 QUERIES = [
     {
         "id":       6763552,
@@ -67,25 +68,22 @@ QUERIES = [
 
 # ── API helpers ────────────────────────────────────────────────────────────────
 
-def headers():
-    return {"X-Dune-API-Key": DUNE_API_KEY}
+HEADERS = {"X-Dune-Api-Key": DUNE_API_KEY}
 
 
 def execute_query(query_id, params):
-    """Trigger query execution. Returns execution_id."""
     url  = f"{DUNE_BASE_URL}/query/{query_id}/execute"                                   # Where the query is found, because dune runs the queries in their own environment and API allows to access results
     body = {"query_parameters": params, "performance": "medium"}                    # performance is a trade off of tokens vs. speed (mainly)
-    resp = requests.post(url, json=body, headers=headers(), timeout=30)             
+    resp = requests.post(url, json=body, headers=HEADERS, timeout=30)             
     resp.raise_for_status()
     execution_id = resp.json()["execution_id"]                                      # dune returns execution_id, which after running through can be called to collect data
     return execution_id
 
 
 def poll_until_done(execution_id, query_name):
-    """Poll status until COMPLETED, FAILED, or CANCELLED. Returns final state."""
     url = f"{DUNE_BASE_URL}/execution/{execution_id}/status"                                             # check status of query
     while True:                                                                                     # loop until return
-        resp  = requests.get(url, headers=headers(), timeout=30)                                    # get request to find status
+        resp  = requests.get(url, headers=HEADERS, timeout=30)                                    # get request to find status
         resp.raise_for_status()
         data  = resp.json()
         state = data.get("state", "UNKNOWN")
@@ -110,7 +108,7 @@ def fetch_all_rows(execution_id):
     while True:
         url    = f"{DUNE_BASE_URL}/execution/{execution_id}/results"                             # after we know the results are there, put into list
         params = {"limit": DUNE_RESULTS_PER_PAGE, "offset": offset}                              # max. 10000 per page
-        resp   = requests.get(url, headers=headers(), params=params, timeout=60)
+        resp   = requests.get(url, headers=HEADERS, params=params, timeout=60)
         resp.raise_for_status()
         data   = resp.json()
 
