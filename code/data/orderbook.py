@@ -13,47 +13,25 @@ Requires:
     pip install websockets requests
 """
 
-import asyncio
-import json
-import csv
-import os
-import time
-import math
-import requests
-import websockets
+import asyncio, json, os, sys, time, math, requests, websockets, csv
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+from config import BINANCE_SYMBOL, BINANCE_ORDERBOOK_DEPTH, INTERVAL, BINANCE_REST_URL, BINANCE_WEBSOCKET, CEX_ORDERBOOK
+from utilities import append_csv
 from datetime import datetime, timezone
 
-# ── Settings ──────────────────────────────────────────────────────────────────
-SYMBOL     = "usdcusdt"      # lowercase, as Binance expects in the WS URL
-DEPTH_N    = 20             # top N bid/ask levels for depth and imbalance
-SNAP_LIMIT = 1000           # REST snapshot depth (1000 or 5000)
-AGG_SECS   = 300            # aggregation window in seconds (300 = 5 minutes)
-SAVE_DIR   = r"D:/data/binance_CEX/orderbook"  # directory to save CSVs (will be created if it doesn't exist)
-# ──────────────────────────────────────────────────────────────────────────────
+# ── Shared state ────────────────────────────────────
 
-REST_URL = (
-    f"https://api.binance.com/api/v3/depth"
-    f"?symbol={SYMBOL.upper()}&limit={SNAP_LIMIT}"
-)
-WS_URL = f"wss://stream.binance.com:9443/ws/{SYMBOL}@depth@100ms"
+bids = {}               # (key) price_str -> (value) qty  (maintained live)
+asks = {}               # (key) price_str -> (value) qty  (maintained live)
+last_update_id = 0      # Binance applies an ID to each orderbook update; used to detect gaps
+ob_ready = False        # True once book is synced and safe to read
 
-# ── Shared state (module-level, no classes) ────────────────────────────────────
-bids = {}           # price_str -> float qty  (maintained live)
-asks = {}           # price_str -> float qty  (maintained live)
-last_update_id = 0
-ob_ready = False    # True once book is synced and safe to read
-
-second_rows = []    # list of 1-second metric dicts, cleared every 5 min
-# ──────────────────────────────────────────────────────────────────────────────
-
+second_rows = []        # list of 1-second metric dicts, cleared every 5 min
 
 # ── Order book helpers ─────────────────────────────────────────────────────────
 
 def apply_side(side, updates):
-    """
-    Apply a list of [price_str, qty_str] updates to one side of the book.
-    qty == 0 → remove the level.
-    """
+    # Apply a list of [price_str, qty_str] updates to one side of the book. qty == 0 -> remove the level.
     for price, qty in updates:
         q = float(qty)
         if q == 0.0:
@@ -63,8 +41,8 @@ def apply_side(side, updates):
 
 
 def fetch_snapshot_sync():
-    """Blocking REST call – run in executor so it doesn't block the event loop."""
-    resp = requests.get(REST_URL, timeout=10)
+    # get initial snapshot of orderbook to have a basis to apply updates to. Sync because of ASYNCIO
+    resp = requests.get(BINANCE_REST_URL, timeout=10)
     resp.raise_for_status()
     return resp.json()
 
@@ -72,14 +50,11 @@ def fetch_snapshot_sync():
 # ── 1-second metric computation ────────────────────────────────────────────────
 
 def compute_metrics():
-    """
-    Compute order book metrics from the current bids/asks dicts.
-    Returns a dict, or None if the book is empty.
-    """
+    # Compute order book metrics from the current bids/asks dicts.
     if not bids or not asks:
         return None
 
-    sorted_bids = sorted(bids.items(), key=lambda x: float(x[0]), reverse=True)
+    sorted_bids = sorted(bids.items(), key=lambda x: float(x[0]), reverse=True) # Making float, so that ordering is correct, high first
     sorted_asks = sorted(asks.items(), key=lambda x: float(x[0]))
 
     best_bid = float(sorted_bids[0][0])
@@ -87,8 +62,8 @@ def compute_metrics():
     spread   = best_ask - best_bid
     midprice = (best_bid + best_ask) / 2.0
 
-    top_bids = sorted_bids[:DEPTH_N]
-    top_asks = sorted_asks[:DEPTH_N]
+    top_bids = sorted_bids[:BINANCE_ORDERBOOK_DEPTH]            # 20 best bids (depth = 20)
+    top_asks = sorted_asks[:BINANCE_ORDERBOOK_DEPTH]            # 20 best asks (depth = 20)
 
     # Depth = notional value (USD) of the top-N levels: Σ price × qty
     bid_depth = sum(float(p) * q for p, q in top_bids)
@@ -111,27 +86,24 @@ def compute_metrics():
 
 # ── 5-minute aggregation and CSV save ─────────────────────────────────────────
 
-def _mean(xs):
-    return sum(xs) / len(xs)
+def _mean(list):
+    return sum(list) / len(list)
 
-def _std(xs):
-    m = _mean(xs)
-    return math.sqrt(sum((x - m) ** 2 for x in xs) / len(xs))
+def _std(list):
+    m = _mean(list)
+    return math.sqrt(sum((x - m) ** 2 for x in list) / len(list))
 
 
 def aggregate_and_save(rows, window_end):
-    """
-    Aggregate a list of 1-second dicts and append one row to the daily CSV.
-    window_end is a datetime (UTC) marking the end of the 5-min window.
-    """
+    # Aggregate a list of 1-second dicts and append one row to the daily CSV.
     if not rows:
-        print(f"[{window_end.strftime('%H:%M')}] No data collected – skipping save.")
+        print(f"[{window_end.strftime('%H:%M')}] No data collected - skipping save.")
         return
 
-    spreads    = [r["spread"]    for r in rows]
-    imbalances = [r["imbalance"] for r in rows]
-    bid_depths = [r["bid_depth"] for r in rows]
-    ask_depths = [r["ask_depth"] for r in rows]
+    spreads    = [observation["spread"]    for observation in rows]
+    imbalances = [observation["imbalance"] for observation in rows]
+    bid_depths = [observation["bid_depth"] for observation in rows]
+    ask_depths = [observation["ask_depth"] for observation in rows]
 
     record = {
         "window_end":     window_end.strftime("%Y-%m-%d %H:%M:%S"),
@@ -148,17 +120,8 @@ def aggregate_and_save(rows, window_end):
         "ask_depth_min":  round(min(ask_depths),   2),
     }
 
-    os.makedirs(SAVE_DIR, exist_ok=True)
-    filename = os.path.join(
-        SAVE_DIR,
-        window_end.strftime("%d-%m") + "-orderbook.csv"
-    )
-    exists   = os.path.exists(filename)
-    with open(filename, "a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=record.keys())
-        if not exists:
-            w.writeheader()
-        w.writerow(record)
+    filename = f"{window_end.strftime('%d-%m')}-orderbook.csv"
+    append_csv(CEX_ORDERBOOK, filename, record)
 
     print(
         f"[{window_end.strftime('%H:%M')}] Saved {len(rows)} s → {filename} | "
@@ -167,39 +130,45 @@ def aggregate_and_save(rows, window_end):
 
 
 # ── WebSocket loop (order book maintenance) ────────────────────────────────────
+    # The loop works like this: We use asyncio to have two loops running concurrently.
+    # ws_loop() 
+        # fetches a snapshot and meanwhile buffers incoming updates (as long as it takes to get the snapshot).
+        # After that, ws_loop() finds the bridge from snapshot to livestream and continues receiving updates from the stream and adjusting the local orderbook.
+    # tick_loop()
+        # takes local orderbook every second (global list) and computes metrics.
+        # if while running this loop, time crosses a 5min boundary it saves all metric-rows into CSV and clears the computed metrics locally.
+    # Normally, the loops switch when ws_loop() is wating for an update (every 100ms one update comes in) to tick_loop().
+    # tick_loop() takes a few milliseconds to run and then goes to sleep for the remainder of the second, switching back to ws_loop().
+    # since tick_loop() sleeps for most of the time (remainder of the second after it runs to compute metrics) ws_loop() receives update, switches to tick_loop() and immediately switches back to ws_loop() 9/10 times per second.
+    # If a gap is found, it tries to reconnect the orderbook first, if that does not work, the orderbook snapshot is fetched again. If all goes well, ws_loop() stays in phase 3.
 
 async def ws_loop():
-    """
-    Connects to Binance, maintains the local order book following the official
-    procedure, and sets ob_ready=True once the book is synced.
-    Reconnects automatically on any error or gap.
-    """
     global bids, asks, last_update_id, ob_ready
 
-    while True:
+    while True:                             # to have a clean slate if I need to restart the code
         ob_ready = False
         buffer   = []
         prev_u   = None
 
         try:
             async with websockets.connect(
-                WS_URL,
-                ping_interval=None,   # Binance server manages pings; avoid conflicting with its keepalive
+                BINANCE_WEBSOCKET,
+                ping_interval=None,             # Binance server manages pings; avoid conflicting with its keepalive
             ) as ws:
-                print(f"WebSocket connected → {WS_URL}")
+                print(f"WebSocket connected → {BINANCE_WEBSOCKET}")
 
-                # ── Phase 1: buffer messages while fetching the REST snapshot ──
+        # ── Phase 1: buffer messages while fetching the REST snapshot ──────────
                 loop      = asyncio.get_running_loop()
                 snap_task = loop.run_in_executor(None, fetch_snapshot_sync)
-
+                    # snap task is being run, in the meanwhile the program (already connected to websockets) collects updates
                 while not snap_task.done():
                     try:
-                        raw = await asyncio.wait_for(ws.recv(), timeout=0.3)
-                        buffer.append(json.loads(raw))
+                        raw = await asyncio.wait_for(ws.recv(), timeout=0.3)    # execute: waiting for an update for 0.3 sec
+                        buffer.append(json.loads(raw))                          # append update to buffer list
                     except asyncio.TimeoutError:
                         pass
 
-                snap           = await snap_task
+                snap           = await snap_task                                # get value from the future that has been completed (because loop exited)
                 last_update_id = snap["lastUpdateId"]
                 bids           = {p: float(q) for p, q in snap["bids"]}
                 asks           = {p: float(q) for p, q in snap["asks"]}
@@ -207,26 +176,26 @@ async def ws_loop():
                     f"Snapshot: lastUpdateId={last_update_id}, "
                     f"{len(bids)} bids, {len(asks)} asks, {len(buffer)} buffered msgs"
                 )
-
-                # ── Phase 2: apply buffered messages ──────────────────────────
-                # Step 4: drop events where u <= lastUpdateId
-                # Step 5: first valid event must have U <= lastUpdateId+1 AND u >= lastUpdateId+1
-                # Step 6: each subsequent event's U must equal previous u + 1
+        
+        # ── Phase 2: apply buffered messages ───────────────────────────────────
+            # The goal is to take the snapshot and connect the livestream (pre buffered) to the snapshot
+            # For that, we need to find the first update (batch) (from livestream) that has one update with ID = lastUpdateID from snapshot
+            # 'u' is the ID of the last update in the batch, 'U' is the ID of the first update in the batch 
                 found_start = False
                 for msg in buffer:
                     if msg["u"] <= last_update_id:
-                        continue                           # step 4: discard
-                    if not found_start:
+                        continue                                # discard update batch, if all updates are already in the snapshot
+                    if not found_start:                         
                         valid_start = (
                             msg["U"] <= last_update_id + 1
-                            and msg["u"] >= last_update_id + 1
+                            and msg["u"] >= last_update_id + 1  # logic for what the valid bridge is -> first update can come before the snapshot but last update is after the snapshot -> somewhere in that batch there is last_update_id
                         )
                         if not valid_start:
-                            continue                       # step 5: not the right entry point yet
+                            continue                            # happens if somehow the order of updates is scrambled (e.g. 100 = last_update_id, msg1 = [95,98], msg2 = [110,111], msg3 = [99,102])
                         found_start = True
                     else:
-                        if msg["U"] != prev_u + 1:        # step 6: gap in buffer
-                            print("Gap in buffered messages – will re-sync via live stream.")
+                        if msg["U"] != prev_u + 1:              # if a gap in the buffer gets detected (e.g. u_prev = 110, U_next = 112) then the livestreams tries to fix the gap, if it cannot it restarts
+                            print("Gap in buffered messages. Will re-sync via live stream.")
                             found_start = False
                             break
 
@@ -241,18 +210,18 @@ async def ws_loop():
                 # ── Phase 3: live stream ───────────────────────────────────────
                 while True:
                     try:
-                        raw = await asyncio.wait_for(ws.recv(), timeout=30)
+                        raw = await asyncio.wait_for(ws.recv(), timeout=30)             # if nothing arrives for 30sec set ob_ready = False -> tick_loop exits
                     except asyncio.TimeoutError:
-                        print("No message received in 30 s – reconnecting...")
+                        print("No message received in 30 s - reconnecting...")
                         ob_ready = False
                         break
 
-                    msg = json.loads(raw)
+                    msg = json.loads(raw)                                               # each incoming update pasted into a python dictionary
 
                     if msg["u"] <= last_update_id:
-                        continue                           # already applied
+                        continue                                                        # skips update if already applied
 
-                    if prev_u is not None and msg["U"] != prev_u + 1:
+                    if prev_u is not None and msg["U"] != prev_u + 1:                   # gap detection -> here reconnect into phase 1
                         print(
                             f"Stream gap: expected U={prev_u + 1}, got U={msg['U']}. "
                             "Re-syncing..."
@@ -276,34 +245,29 @@ async def ws_loop():
 async def tick_loop():
     global second_rows
 
-    # Align the first tick to the next whole second
-    await asyncio.sleep(1.0 - (time.time() % 1.0))
+    await asyncio.sleep(1.0 - (time.time() % 1.0))                  # Align the first tick to the next whole second
 
-    # Compute the next clock-aligned 5-minute boundary
     now      = time.time()
-    next_5min = now + (AGG_SECS - now % AGG_SECS)
+    next_5min = now + (INTERVAL - now % INTERVAL)                   # Compute the first clock-aligned 5-minute boundary after starting the loop
 
     while True:
-        t0 = time.time()
+        t0 = time.time()                                            # one iteration per second, later for sleeping
 
-        # Compute and store 1-second metrics
         if ob_ready:
-            m = compute_metrics()
+            m = compute_metrics()                                   # compute metrics if there are no gaps
             if m:
-                second_rows.append(m)
+                second_rows.append(m)                               # if there is anything computed, append
 
-        # Check if we just crossed a 5-minute boundary
-        if time.time() >= next_5min:
-            window_end = datetime.fromtimestamp(
+        if time.time() >= next_5min:                                # since this loop keeps running, it checks if the 5min boundary was crossed, if so it saves and resets the local metric list
+            window_end = datetime.fromtimestamp(                    
                 next_5min, tz=timezone.utc
             )
-            rows_to_save = second_rows[:]   # copy before clearing
+            rows_to_save = second_rows[:]                           # copy all computed metric enteries before clearing the local list
             second_rows  = []
             aggregate_and_save(rows_to_save, window_end)
-            next_5min += AGG_SECS
+            next_5min += INTERVAL                                   # next 5min interval
 
-        # Sleep for the remainder of this second
-        elapsed = time.time() - t0
+        elapsed = time.time() - t0                                  # Sleep for the remainder of this second
         await asyncio.sleep(max(0.0, 1.0 - elapsed))
 
 
@@ -311,8 +275,8 @@ async def tick_loop():
 
 async def main():
     print(
-        f"Binance OB recorder | symbol={SYMBOL.upper()} | "
-        f"depth_N={DEPTH_N} | agg_window={AGG_SECS}s"
+        f"Binance OB recorder | symbol={BINANCE_SYMBOL.upper()} | "
+        f"depth_N={BINANCE_ORDERBOOK_DEPTH} | agg_window={INTERVAL}s"
     )
     await asyncio.gather(ws_loop(), tick_loop())
 
