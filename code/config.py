@@ -14,7 +14,7 @@ UNISWAP_API_KEY = os.getenv("UNISWAP_API_KEY")
 
 # ── Directories ────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "DATA")                       # data directory
+DATA_DIR = os.path.join(BASE_DIR, "..", "DATA")                 # data directory, at the root next to code and notebooks
 DEX_DIR = os.path.join(DATA_DIR, "DEX")                         # all the uniswap data
 DEX_POOL = os.path.join(DEX_DIR, "pool")                        # pool data
 DEX_MINTS_BURNS = os.path.join(DEX_DIR, "mints_burns")          # pool mints & burns
@@ -56,6 +56,8 @@ UNISWAP_TOKEN0_DECIMAL_PLACES = 6                               # USDC
 UNISWAP_TOKEN1_DECIMAL_PLACES = 6                               # USDT
 UNISWAP_LARGE_TRADE_THRESHOLD = 100_000                         # What is considered a large trade
 # I found the subgraph ID here: https://thegraph.com/explorer/subgraphs/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV?view=Query&chain=arbitrum-one
+UNISWAP_START_DATE = "2026-01-01 00:00:00"
+UNISWAP_END_DATE = "2026-01-01 01:00:00"
 
 # ── Dune ───────────────────────────────────────────────────────────────────────
 DUNE_START_DATE = "2026-01-01 00:00:00"
