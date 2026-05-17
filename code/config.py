@@ -50,7 +50,7 @@ UNISWAP_GRAPH_URL = (
     f"https://gateway.thegraph.com/api/{UNISWAP_API_KEY}"       # Accessing the Uniswap v3
     f"/subgraphs/id/{UNISWAP_SUBGRAPH_ID}"
     )
-UNISWAP_POOL_ID = "0x3416cf6c708da44db2624d63ea0aaef7113527c6"  # ID of the USDC/USDT pool
+UNISWAP_POOL_ID = "0x3416cf6c708da44db2624d63ea0aaef7113527c6"  # HAS TO BE LOWERCASE!
 UNISWAP_TICK_NUMBER = 10                                        # [current_tick - TICK_NUMBER, current_tick + TICK_NUMBER]
 UNISWAP_TOKEN0_DECIMAL_PLACES = 6                               # USDC
 UNISWAP_TOKEN1_DECIMAL_PLACES = 6                               # USDT
