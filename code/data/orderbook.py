@@ -15,7 +15,7 @@ Requires:
 
 import asyncio, json, os, sys, time, math, requests, websockets, csv
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-from config import BINANCE_SYMBOL, BINANCE_ORDERBOOK_DEPTH, INTERVAL, BINANCE_REST_URL, BINANCE_WEBSOCKET, CEX_ORDERBOOK
+from config import BINANCE_SYMBOL, BINANCE_ORDERBOOK_DEPTH, INTERVAL, BINANCE_REST_URL, BINANCE_WEBSOCKET, CEX_ORDERBOOK, CEX_KLINES
 from utilities import append_csv
 from datetime import datetime, timezone
 
@@ -274,6 +274,8 @@ async def tick_loop():
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 async def main():
+    os.makedirs(CEX_KLINES, exist_ok=True)
+    print(f"Please place your downloaded kline files into: {CEX_KLINES}")
     print(
         f"Binance OB recorder | symbol={BINANCE_SYMBOL.upper()} | "
         f"depth_N={BINANCE_ORDERBOOK_DEPTH} | agg_window={INTERVAL}s"
