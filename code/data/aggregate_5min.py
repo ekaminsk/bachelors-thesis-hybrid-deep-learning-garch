@@ -230,7 +230,7 @@ def _dune_ts(series):
 
 def load_dune_whale_transfers():
     # Query 1: Whale Transfers
-    path = DUNE_DIR / "q1_whale_transfers.csv"
+    path = Path(DUNE_DIR) / "q1_whale_transfers.csv"
     if not path.exists():
         print(f"  [DUNE] WARNING: {path} not found -- skipping")
         return pd.DataFrame()
@@ -254,7 +254,7 @@ def load_dune_whale_transfers():
 def load_dune_cex_flows():
     # Query 2: CEX Inflows and Outflows
     # This query has long output with multiple rows per timestamp (e.g. Binance, Kraken, OKX,...), another aggregation step is needed
-    path = DUNE_DIR / "q2_cex_flows.csv"
+    path = Path(DUNE_DIR) / "q2_cex_flows.csv"
     if not path.exists():
         print(f"  [DUNE] WARNING: {path} not found -- skipping")
         return pd.DataFrame()
@@ -282,7 +282,7 @@ def load_dune_cex_flows():
 
 def load_dune_gas_price():
     # Query 3: Gas Price Time Series (Base + Priority Fee) 
-    path = DUNE_DIR / "q3_gas_price.csv"
+    path = Path(DUNE_DIR) / "q3_gas_price.csv"
     if not path.exists():
         print(f"  [DUNE] WARNING: {path} not found -- skipping")
         return pd.DataFrame()
@@ -309,7 +309,7 @@ def load_dune_gas_price():
 
 def load_dune_gas_used():
     # Query 4: Gas Used Per Block & Block Utilization 
-    path = DUNE_DIR / "q4_gas_used.csv"
+    path = Path(DUNE_DIR) / "q4_gas_used.csv"
     if not path.exists():
         print(f"  [DUNE] WARNING: {path} not found -- skipping")
         return pd.DataFrame()
@@ -337,7 +337,7 @@ def load_dune_gas_used():
 
 def load_dune_mempool():
     # Query 5: Mempool Congestion Proxies
-    path = DUNE_DIR / "q5_mempool_congestion.csv"
+    path = Path(DUNE_DIR) / "q5_mempool_congestion.csv"
     if not path.exists():
         print(f"  [DUNE] WARNING: {path} not found -- skipping")
         return pd.DataFrame()
@@ -365,7 +365,7 @@ def load_dune_mempool():
 
 def load_dune_supply_changes():
     # Query 6: On-Chain Mints and Burns
-    path = DUNE_DIR / "q6_supply_changes.csv"
+    path = Path(DUNE_DIR) / "q6_supply_changes.csv"
     if not path.exists():
         print(f"  [DUNE] WARNING: {path} not found -- skipping supply changes")
         return pd.DataFrame()
@@ -386,11 +386,14 @@ def load_dune_supply_changes():
 
 # ── Cleaning ─────────────────────────────────────────────────────────────────
 
-def clean_data(df):
+def clean_data(data):
+    df = data.copy()
+    df.index = pd.to_datetime(df.index)                                                         # fixing a bug with the timestamps being in incorrect data type
+    df = df.sort_index()   
     df['return'] = 10000 * np.log(df['dex_pool_price'] / df['dex_pool_price'].shift(1))         # Compute log return in basis points based on dex pool price
-    df['gap'] = (df['window_end'] - df['window_end'].shift(1)) > pd.Timedelta('5min')           # Identify gaps — where consecutive timestamps are more than 5 minutes apart
+    df['gap'] = (df.index.to_series() - df.index.to_series().shift(1)) > pd.Timedelta('5min')   # Identify gaps — where consecutive timestamps are more than 5 minutes apart
     df.loc[df['gap'], 'return'] = np.nan                                                        # Blank out returns immediately following a gap
-    df.loc[0, 'return'] = np.nan                                                                # Also blank out the first return (initialization)
+    df.iloc[0, df.columns.get_loc('return')] = np.nan                                           # Also blank out the first return (initialization)                                                     
     return df
 
 
@@ -428,12 +431,13 @@ def build_5min():
     merged = loaded[0]
     for df in loaded[1:]:
         merged = merged.join(df, how="outer")
-    return clean_data(merged).sort_index()
+    return clean_data(merged)
 
 
 # ── Entry Point ──────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    os.makedirs(AGGREGATE_OUTPUT, exist_ok=True)
     print("Building 5-min aggregated dataset...")
     df = build_5min()
 
