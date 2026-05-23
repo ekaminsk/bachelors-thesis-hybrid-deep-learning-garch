@@ -7,6 +7,7 @@ Time index: window_end (UTC) -- the candle/snapshot closes at this timestamp.
 import os, sys
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from datetime import timedelta
 
@@ -383,6 +384,16 @@ def load_dune_supply_changes():
     return pivot
 
 
+# ── Cleaning ─────────────────────────────────────────────────────────────────
+
+def clean_data(df):
+    df['return'] = 10000 * np.log(df['dex_pool_price'] / df['dex_pool_price'].shift(1))         # Compute log return in basis points based on dex pool price
+    df['gap'] = (df['window_end'] - df['window_end'].shift(1)) > pd.Timedelta('5min')           # Identify gaps — where consecutive timestamps are more than 5 minutes apart
+    df.loc[df['gap'], 'return'] = np.nan                                                        # Blank out returns immediately following a gap
+    df.loc[0, 'return'] = np.nan                                                                # Also blank out the first return (initialization)
+    return df
+
+
 # ── Merge ────────────────────────────────────────────────────────────────────
 
 def build_5min():
@@ -417,7 +428,7 @@ def build_5min():
     merged = loaded[0]
     for df in loaded[1:]:
         merged = merged.join(df, how="outer")
-    return merged.sort_index()
+    return clean_data(merged).sort_index()
 
 
 # ── Entry Point ──────────────────────────────────────────────────────────────
