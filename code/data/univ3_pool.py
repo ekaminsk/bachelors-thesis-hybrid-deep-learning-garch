@@ -117,7 +117,7 @@ def query_mints_burns(window_end_str, since_ts):
 
 
 def query_ticks(window_end_str, current_tick):
-    lo   = current_tick - UNISWAP_TICK_NUMBER   # cannot write low instead of lo, because of query params
+    lo   = current_tick - UNISWAP_TICK_NUMBER
     hi   = current_tick + UNISWAP_TICK_NUMBER
     data = gql(UNISWAP_GRAPH_URL, TICKS_Q, {"pool": UNISWAP_POOL_ID, "lo": str(lo), "hi": str(hi)})
     ticks = data["ticks"]
