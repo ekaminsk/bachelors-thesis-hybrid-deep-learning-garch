@@ -78,15 +78,15 @@ def query_pool(window_end_str):
     tick  = int(pool["tick"]) if pool["tick"] is not None else None
     row   = {
         "window_end":    window_end_str,
-        "liquidity":     pool["liquidity"],
+        "liquidity":     int(pool["liquidity"]),
         "tick":          tick,
         "sqrt_price":    pool["sqrtPrice"],
-        "price":         round(price, 8),
-        "token0_price":  pool["token0Price"],
-        "token1_price":  pool["token1Price"],
-        "tvl_token0":    pool["totalValueLockedToken0"],
-        "tvl_token1":    pool["totalValueLockedToken1"],
-        "tvl_usd":       pool["totalValueLockedUSD"],
+        "price":         float(round(price, 8)),
+        "token0_price":  float(pool["token0Price"]),
+        "token1_price":  float(pool["token1Price"]),
+        "tvl_token0":    float(pool["totalValueLockedToken0"]),
+        "tvl_token1":    float(pool["totalValueLockedToken1"]),
+        "tvl_usd":       float(pool["totalValueLockedUSD"]),
     }
     return row, tick
 
