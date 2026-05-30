@@ -96,7 +96,13 @@ DATA_PATH = Path(AGGREGATE_OUTPUT) / "aggregated_5min_data.csv"
 
 
 # ── Loading data ─────────────────────────────────────────────────────────────
-
+"""
+- Load and clean(again) the data: load CSV into df, fill sparse colums with 0 (to remove NaN) compute dex_cex_price_spread, clip negative gas values
+- Extract return to be the dependent: pull return column, identify gap boundaries, flag them
+- Extract and fill features: pull 41 feature columns (FEATURE_COLS) after they are cleaned (if in ZERO_FILL_COLS)
+- Split chronolgically: Split 70:10:20 -- train / val / test  
+- Scale and tensorify: fit StandardScaler on training data, extend to all data, convert to PyTorch compatible tensor 
+"""
 def load_data(path: str = DATA_PATH, train_frac: float = 0.8, val_frac: float = 0.1):
     df = pd.read_csv(path, low_memory=False)
     print(f"Loaded {len(df):,} rows x {df.shape[1]} columns")
