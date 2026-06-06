@@ -14,7 +14,7 @@ UNISWAP_API_KEY = os.getenv("UNISWAP_API_KEY")
 
 # ── Directories ────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "..", "collected_data")                 # data directory, at the root next to code and notebooks
+DATA_DIR = os.path.join(BASE_DIR, "..", "collected_data")       # data directory, at the root next to code and notebooks
 DEX_DIR = os.path.join(DATA_DIR, "DEX")                         # all the uniswap data
 DEX_POOL = os.path.join(DEX_DIR, "pool")                        # pool data
 DEX_MINTS_BURNS = os.path.join(DEX_DIR, "mints_burns")          # pool mints & burns
@@ -29,7 +29,7 @@ DUNE_DIR = os.path.join(DATA_DIR, "ONCHAIN")                    # here all query
 
 AGGREGATE_OUTPUT = os.path.join(DATA_DIR, "final")              # for the 5min aggregation
 
-RESULTS_DIR = os.path.join(BASE_DIR, "MODEL_RESULTS")
+RESULTS_DIR = os.path.join(BASE_DIR, "model_results")
 TRAIN_RESULTS = os.path.join(RESULTS_DIR, "training_results.txt")
 GARCH_OUTPUT = os.path.join(RESULTS_DIR, "garch_output.csv")
 BEST_MODEL = os.path.join(RESULTS_DIR, "best_model.pt")        
