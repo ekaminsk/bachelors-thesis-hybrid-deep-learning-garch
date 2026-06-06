@@ -9,7 +9,7 @@ GARCHNet:
     Output : two independent raw logits (unconstrained raw scores) (z1, z2) per timestep
 
 Parameter mapping (per timestep t):
-    omega   = softplus(alpha0_raw)              -- constant scalar alpha_0 > 0 (using softplus as it is more stable for small values)
+    omega   = softplus(omega_raw)               -- constant scalar omega > 0 (using softplus as it is more stable for small values)
     alpha_t = a * sigmoid(z1_t)                 -- scales range into (0, a)
     beta_t  = b * sigmoid(z2_t)                 -- scales range into (0, b)
 
@@ -54,7 +54,7 @@ class GARCHNet(nn.Module):                      # inherits PyTorch's nn.Module
         a:          float = 0.2,                # overridden by train.py from GARCH fit
         b:          float = 0.7,                # overridden by train.py from GARCH fit
     ):
-        super().__init__()                      # Calls constructor (super refers to nn.Module)
+        super().__init__()                      # Calls constructor (super refers to nn.Module -> uses forward())
 
         self.a = a
         self.b = b
@@ -67,7 +67,7 @@ class GARCHNet(nn.Module):                      # inherits PyTorch's nn.Module
             nn.Linear(hidden, 2),
         )
 
-        self.alpha0_raw = nn.Parameter(torch.tensor(-1.0))  # alpha_0 (omega): long-run variance intercept, with nn.Parameter it is optimized as well.
+        self.omega_raw = nn.Parameter(torch.tensor(-1.0))  # alpha_0 (omega): long-run variance intercept, with nn.Parameter it is optimized as well.
                                                             # Later becomes parameterized with softplus
 
     # ─────────────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ class GARCHNet(nn.Module):                      # inherits PyTorch's nn.Module
     ):
     
         T     = X.shape[0]                      # Used in sequential GARCH recursion
-        omega = F.softplus(self.alpha0_raw)
+        omega = F.softplus(self.omega_raw)
 
         z = self.net(X)                             # (T, 2) runs all timesteps at once
 

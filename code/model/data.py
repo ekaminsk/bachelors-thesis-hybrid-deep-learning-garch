@@ -96,14 +96,16 @@ DATA_PATH = Path(AGGREGATE_OUTPUT) / "aggregated_5min_data.csv"
 
 
 # ── Loading data ─────────────────────────────────────────────────────────────
-"""
-- Load and clean(again) the data: load CSV into df, fill sparse colums with 0 (to remove NaN) compute dex_cex_price_spread, clip negative gas values
-- Extract return to be the dependent: pull return column, identify gap boundaries, flag them
-- Extract and fill features: pull 41 feature columns (FEATURE_COLS) after they are cleaned (if in ZERO_FILL_COLS)
-- Split chronolgically: Split 70:10:20 -- train / val / test  
-- Scale and tensorify: fit StandardScaler on training data, extend to all data, convert to PyTorch compatible tensor 
-"""
 def load_data(path: str = DATA_PATH, train_frac: float = 0.8, val_frac: float = 0.1):
+
+    """
+    - Load and clean(again) the data: load CSV into df, fill sparse colums with 0 (to remove NaN) compute dex_cex_price_spread, clip negative gas values
+    - Extract return to be the dependent: pull return column, identify gap boundaries, flag them
+    - Extract and fill features: pull 41 feature columns (FEATURE_COLS) after they are cleaned (if in ZERO_FILL_COLS)
+    - Split chronolgically: Split 70:10:20 -- train (0 to val_start) / val (val_start to train_end) / test (train_end to T)  
+    - Scale and tensorify: fit StandardScaler on training data, extend to all data, convert to PyTorch compatible tensor 
+    """
+
     df = pd.read_csv(path, low_memory=False)
     print(f"Loaded {len(df):,} rows x {df.shape[1]} columns")
 
@@ -152,14 +154,14 @@ def load_data(path: str = DATA_PATH, train_frac: float = 0.8, val_frac: float = 
     X_df = pd.DataFrame(X, columns=FEATURE_COLS).ffill().fillna(0.0)
     X = X_df.values.astype(np.float32)
 
-    length = len(df)
-    train_end = int(train_frac * length)                            # e.g., 80% -> test boundary
-    val_start = train_end - int(val_frac * length)                  # last val_frac of training window
+    T = len(df)
+    train_end = int(train_frac * T)                            # e.g., 80% -> test boundary
+    val_start = train_end - int(val_frac * T)                  # last val_frac of training window
 
-    print(f"Total timesteps : {length}")
+    print(f"Total timesteps : {T}")
     print(f"Train window    : [0, {train_end})  ({train_end} rows)")
     print(f"Val window      : [{val_start}, {train_end})  ({train_end - val_start} rows)")
-    print(f"Test window     : [{train_end}, {length})  ({length - train_end} rows)")
+    print(f"Test window     : [{train_end}, {T})  ({T - train_end} rows)")
     print(f"Gap boundaries  : {gap_mask.sum()} rows with NaN return")
 
 
@@ -186,7 +188,7 @@ def load_data(path: str = DATA_PATH, train_frac: float = 0.8, val_frac: float = 
         "gap_mask": gap_t,
         "train_end": train_end,
         "val_start": val_start,
-        "length": length,
+        "T": T,
         "scaler": scaler,
         "timestamps": timestamps,
         "feature_cols": FEATURE_COLS,
