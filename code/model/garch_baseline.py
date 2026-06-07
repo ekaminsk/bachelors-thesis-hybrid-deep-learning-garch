@@ -1,110 +1,67 @@
 """
-garch_baseline.py — Fit a standard GARCH(1,1) on the training return series.
-
-Used by train.py to derive the scaling bounds a and b for the NN-GARCH model.
-
-Outputs saved to D:/data/model/results/:
-  garch_baseline_summary.txt   — full arch model summary
-  garch_baseline_params.csv    — scalar estimates (omega, alpha, beta, SE, AIC, BIC, ...)
-  garch_baseline_sigma2.csv    — per-timestep sigma2, eps_t for the train window
-  garch_baseline_acf.png       — ACF of eps_t and eps_t^2 (train window, 40 lags)
+Create standard, econometric GARCH(1,1). Used by train.py to derive the scaling bounds a and b for the NN-GARCH model.
 """
 
-import os
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+
+from config import RESULTS_DIR, ACF_LAGS, GARCH_BASELINE_SUMMARY, GARCH_BASELINE_PARAMS, GARCH_BASELINE_SIGMA2, GARCH_BASELINE_ACF
+from data import load_data
 import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
-RESULTS_DIR = r"D:\data\model\results"
-ACF_NLAGS   = 40
+from arch import arch_model
 
 
-# ---------------------------------------------------------------------------
-# Minimal ACF helpers (self-contained, no dependency on evaluate.py)
-# ---------------------------------------------------------------------------
+# ── ACF Helpers ──────────────────────────────────────────────────────────────
 
 def _acf(x: np.ndarray, nlags: int) -> np.ndarray:
-    x = x - x.mean()
-    n = len(x)
-    c0 = np.dot(x, x) / n
+    x = x - x.mean()                                        # de-means the series for autocorrelation
+    n = len(x)                                      
+    c0 = np.dot(x, x) / n                                   # variance
     if c0 == 0:
         return np.zeros(nlags + 1)
-    vals = [1.0]
+    vals = [1.0]                                            # lag 0 autocorrelation is always 1
     for k in range(1, nlags + 1):
-        vals.append(np.dot(x[: n - k], x[k:]) / n / c0)
+        vals.append(np.dot(x[: n - k], x[k:]) / n / c0)     # autocorrelation at lag k
     return np.array(vals)
 
 
-def _plot_acf(acf_vals, title, filename, n_obs):
-    lags = np.arange(len(acf_vals))
-    ci = 1.96 / np.sqrt(n_obs)
-    fig, ax = plt.subplots(figsize=(10, 4))
-    ax.bar(lags[1:], acf_vals[1:], color="#3a7ebf", width=0.6)
-    ax.axhline( ci, color="red", linestyle="--", linewidth=0.8, label="95% CI")
-    ax.axhline(-ci, color="red", linestyle="--", linewidth=0.8)
-    ax.axhline(0,   color="black", linewidth=0.5)
-    ax.set_title(title, fontsize=11)
-    ax.set_xlabel("Lag")
-    ax.set_ylabel("Autocorrelation")
-    ax.legend(fontsize=8)
-    ax.set_xlim(0, len(acf_vals))
-    path = os.path.join(RESULTS_DIR, filename)
-    plt.savefig(path, dpi=150, bbox_inches="tight")
-    plt.close()
-    print(f"  saved: {path}")
-
-
-# ---------------------------------------------------------------------------
-# Main fitting function
-# ---------------------------------------------------------------------------
+# ── Main fitting function ────────────────────────────────────────────────────
 
 def fit_standard_garch(
-    train_returns: np.ndarray,   # returns in basis points, shape (train_end,)
-    gap_mask: np.ndarray,        # bool mask, shape (train_end,) — True = NaN return
-    timestamps=None,             # optional list of strings for the output CSV
+    train_returns: np.ndarray,          # returns in basis points, shape: 1D (train_end)
+    gap_mask: np.ndarray,               # bool mask, shape 1D (train_end) — True = NaN return
+    timestamps=None,                    # optional list of strings for the output CSV
 ) -> dict:
     """
     Fit GARCH(1,1) with zero mean on the training returns.
-    NaN returns at gap boundaries are kept as NaN — arch handles them natively.
-
-    Returns
-    -------
-    dict with keys: omega, alpha, beta, a, b, loglik, aic, bic
-      where a = 2*alpha, b = min(2*beta, 0.999 - 2*alpha)
+    NaN returns at gap boundaries are kept as NaN
     """
-    try:
-        from arch import arch_model
-    except ImportError:
-        raise ImportError(
-            "The 'arch' package is required for standard GARCH fitting.\n"
-            "Install it with:  py -m pip install arch"
-        )
 
     os.makedirs(RESULTS_DIR, exist_ok=True)
 
-    # Use only valid (non-gap) returns for fitting.
-    # 23 gaps out of ~2,353 training rows — negligible for parameter estimation.
-    r_valid = train_returns[~gap_mask].astype(float)
+    r_valid = train_returns[~gap_mask].astype(float)        # filtering gaps, float needed for ARCH
 
     print("\n" + "=" * 60)
     print("Fitting standard GARCH(1,1) on training window...")
     print(f"  Using {len(r_valid)} valid observations (excluded {gap_mask.sum()} gap rows)")
-    # rescale=True lets arch normalise internally for numerical stability;
-    # alpha and beta are dimensionless so they are unaffected by rescaling.
+
+    # GARCH(1,1) model, zero cond. mean assumption, Gaussian innovation assumption, rescale something for numerical stability
     am  = arch_model(r_valid, vol="Garch", p=1, q=1, mean="Zero", dist="Normal",
                      rescale=True)
+    
+    # fitting model with max. likelihood
     res = am.fit(disp="off", show_warning=False)
 
     omega = float(res.params["omega"])
     alpha = float(res.params["alpha[1]"])
     beta  = float(res.params["beta[1]"]  )
-
     omega_se = float(res.std_err["omega"])
     alpha_se = float(res.std_err["alpha[1]"])
     beta_se  = float(res.std_err["beta[1]"] )
-
     loglik = float(res.loglikelihood)
     aic    = float(res.aic)
     bic    = float(res.bic)
@@ -112,6 +69,7 @@ def fit_standard_garch(
     # Guard against degenerate IGARCH fit (alpha+beta >= 0.999) or negative b.
     # This can happen with stablecoin pairs that have near-zero variance.
     # Fall back to conservative defaults typical for high-frequency FX data.
+    # (spoiler, didnt work)
     _FALLBACK_ALPHA = 0.05
     _FALLBACK_BETA  = 0.90
     if alpha + beta >= 0.999 or alpha <= 0 or beta <= 0:
@@ -132,15 +90,14 @@ def fit_standard_garch(
     print(f"  => a = 2*alpha = {a:.6f}")
     print(f"  => b = min(2*beta, 0.999-2*alpha) = {b:.6f}")
 
-    # ---- save summary text -----------------------------------------------
-    summary_path = os.path.join(RESULTS_DIR, "garch_baseline_summary.txt")
-    with open(summary_path, "w") as f:
-        f.write(str(res.summary()))
+    # ── save summary text ────────────────────────────────────────────────────
+    with open(GARCH_BASELINE_SUMMARY, "w") as f:
+        f.write(str(res.summary()))                 # ARCH library with estimates, stderrors, t-stats, AIC, BIC, etc.
         f.write(f"\n\nDerived scaling bounds:\n  a = {a:.8f}\n  b = {b:.8f}\n")
-    print(f"  saved: {summary_path}")
+    print(f"  saved: {GARCH_BASELINE_SUMMARY}")
 
-    # ---- save scalar params CSV ------------------------------------------
-    params_df = pd.DataFrame([{
+    # ── save scalar params CSV ───────────────────────────────────────────────
+    params_df = pd.DataFrame([{                     # building a table programmatically
         "param":       "omega",
         "estimate":    omega,
         "std_err":     omega_se,
@@ -186,14 +143,14 @@ def fit_standard_garch(
         "std_err":     np.nan,
         "t_stat":      np.nan,
     }])
-    params_path = os.path.join(RESULTS_DIR, "garch_baseline_params.csv")
-    params_df.to_csv(params_path, index=False)
-    print(f"  saved: {params_path}")
+    params_df.to_csv(GARCH_BASELINE_PARAMS, index=False)
+    print(f"  saved: {GARCH_BASELINE_PARAMS}")
 
-    # ---- conditional variance series + residuals -------------------------
+    # ── conditional variance series + residuals ──────────────────────────────
+    
     # arch was fitted on r_valid (no gaps), so sigma2_fit has len = sum(~gap_mask)
-    sigma2_valid = np.asarray(res.conditional_volatility) ** 2   # (n_valid,)
-    eps          = r_valid / np.sqrt(np.maximum(sigma2_valid, 1e-12))
+    sigma2_valid = np.asarray(res.conditional_volatility) ** 2          # need to square to get variance
+    eps          = r_valid / np.sqrt(np.maximum(sigma2_valid, 1e-12))   # returns / cond. standard dev. -> white noise if no GARCH effects
 
     # Reconstruct full-length series aligned to train window (NaN at gaps)
     sigma2_full = np.full(len(train_returns), np.nan)
@@ -206,18 +163,17 @@ def fit_standard_garch(
     if timestamps is not None:
         sigma2_df.insert(0, "window_end", timestamps)
 
-    sigma2_path = os.path.join(RESULTS_DIR, "garch_baseline_sigma2.csv")
-    sigma2_df.to_csv(sigma2_path, index=False)
-    print(f"  saved: {sigma2_path}")
+    sigma2_df.to_csv(GARCH_BASELINE_SIGMA2, index=False)
+    print(f"  saved: {GARCH_BASELINE_SIGMA2}")
 
-    # ---- ACF plots -------------------------------------------------------
+    # ── ACF plots ────────────────────────────────────────────────────────────
     n_valid = len(eps)
-    acf_eps  = _acf(eps,    ACF_NLAGS)
-    acf_eps2 = _acf(eps**2, ACF_NLAGS)
+    acf_eps  = _acf(eps,    ACF_LAGS)
+    acf_eps2 = _acf(eps**2, ACF_LAGS)
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 4))
     ci = 1.96 / np.sqrt(n_valid)
-    lags = np.arange(ACF_NLAGS + 1)
+    lags = np.arange(ACF_LAGS + 1)
 
     for ax, acf_vals, title in [
         (axes[0], acf_eps,  "ACF of Standardised Residuals\n(Standard GARCH(1,1), train)"),
@@ -233,10 +189,9 @@ def fit_standard_garch(
         ax.legend(fontsize=7)
 
     plt.tight_layout()
-    acf_path = os.path.join(RESULTS_DIR, "garch_baseline_acf.png")
-    plt.savefig(acf_path, dpi=150, bbox_inches="tight")
+    plt.savefig(GARCH_BASELINE_ACF, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"  saved: {acf_path}")
+    print(f"  saved: {GARCH_BASELINE_ACF}")
 
     print(f"  eps_t — mean={eps.mean():.4f}  std={eps.std():.4f}  "
           f"skew={float(np.mean(((eps-eps.mean())/eps.std())**3)):.4f}  "
@@ -251,9 +206,6 @@ def fit_standard_garch(
 
 
 if __name__ == "__main__":
-    import sys
-    sys.path.insert(0, os.path.dirname(__file__))
-    from data import load_data
     d = load_data()
     r_np  = d["r_all"].numpy()
     gap_np = d["gap_mask"].numpy().astype(bool)
@@ -262,4 +214,4 @@ if __name__ == "__main__":
         gap_np[:d["train_end"]],
         timestamps=d["timestamps"][:d["train_end"]] if d["timestamps"] else None,
     )
-    print(result)
+    print(result)               # direct result for standalone testing
