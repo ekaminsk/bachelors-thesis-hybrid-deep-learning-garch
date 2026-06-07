@@ -14,7 +14,7 @@ from datetime import timedelta
 from config import DEX_MINTS_BURNS, DEX_POOL, DEX_SWAPS, DEX_TICKS
 from config import CEX_KLINES, CEX_ORDERBOOK
 from config import DUNE_DIR
-from config import AGGREGATE_OUTPUT 
+from config import AGGREGATE_OUTPUT, AGGREGATED_DATA
 from config import INTERVAL
 
 # ── Extra Config ─────────────────────────────────────────────────────────────
@@ -445,6 +445,5 @@ if __name__ == "__main__":
     print(f"  Time range       : {df.index[0]}  ->  {df.index[-1]}")
     print(f"  Total columns    : {len(df.columns)}")
 
-    out_path = Path(AGGREGATE_OUTPUT) / "aggregated_5min_data.csv"
-    df.to_csv(out_path)
-    print(f"\nSaved: {out_path}.")
+    df.to_csv(AGGREGATED_DATA)
+    print(f"\nSaved: {AGGREGATED_DATA}.")

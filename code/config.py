@@ -28,6 +28,7 @@ CEX_ORDERBOOK           = os.path.join(CEX_DIR, "orderbook")    # local orderboo
 DUNE_DIR                = os.path.join(DATA_DIR, "ONCHAIN")     # here all query responses can be fetched, because it is all in one file already
 
 AGGREGATE_OUTPUT        = os.path.join(DATA_DIR, "final")       # for the 5min aggregation
+AGGREGATED_DATA         = os.path.join(AGGREGATE_OUTPUT, "aggregated_5min_data.csv")
 
 RESULTS_DIR             = os.path.join(BASE_DIR, "model_results")
 TRAIN_RESULTS           = os.path.join(RESULTS_DIR, "training_results.txt")
@@ -38,6 +39,8 @@ GARCH_BASELINE_SUMMARY  = os.path.join(RESULTS_DIR, "garch_baseline_summary.txt"
 GARCH_BASELINE_PARAMS   = os.path.join(RESULTS_DIR, "garch_baseline_params.csv")
 GARCH_BASELINE_SIGMA2   = os.path.join(RESULTS_DIR, "garch_baseline_sigma2.csv")
 GARCH_BASELINE_ACF      = os.path.join(RESULTS_DIR, "garch_baseline_acf.png")
+
+PLOTS_DIR               = os.path.join(RESULTS_DIR, "plots")
 
 # ── Binance ──────────────────────────────────────────────────────────────────
 BINANCE_SYMBOL          = "usdcusdt"
