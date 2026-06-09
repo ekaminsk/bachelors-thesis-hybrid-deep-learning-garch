@@ -41,6 +41,7 @@ GARCH_BASELINE_SIGMA2   = os.path.join(RESULTS_DIR, "garch_baseline_sigma2.csv")
 GARCH_BASELINE_ACF      = os.path.join(RESULTS_DIR, "garch_baseline_acf.png")
 
 PLOTS_DIR               = os.path.join(RESULTS_DIR, "plots")
+EVALUATE_DIR            = os.path.join(RESULTS_DIR, "evaluation")
 
 # ── Binance ──────────────────────────────────────────────────────────────────
 BINANCE_SYMBOL          = "usdcusdt"
