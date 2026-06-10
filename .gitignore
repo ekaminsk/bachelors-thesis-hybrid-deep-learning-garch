@@ -6,3 +6,4 @@ Thumbs.db
 input/
 .venv/
 collected_data/
+model_results/
