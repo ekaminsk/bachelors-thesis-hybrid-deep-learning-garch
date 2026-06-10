@@ -97,10 +97,10 @@ def plot_conditional_variance():
     baseline = pd.read_csv(GARCH_BASELINE_SIGMA2,
                      parse_dates=["window_end"])
     baseline = baseline.rename(columns={"window_end": "ts"})
-    baseline_full = pd.DataFrame({"ts": garchoutput["ts"]}).merge(
-        baseline[["ts", "sigma2_garch"]], on="ts", how="left"
-    )
-    baselinel_sigma2 = baseline_full["sigma2_garch"].values
+
+    baselinel_sigma2 = np.full(len(garchoutput), np.nan)
+    baselinel_sigma2[:len(baseline)] = baseline["sigma2_garch"].values
+    baseline_valid = np.isfinite(baselinel_sigma2)
 
     # ── figure ───────────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(14, 4.5))
@@ -112,7 +112,6 @@ def plot_conditional_variance():
                zorder=2, label="$r_t^2$  (5-min realized variance)")
 
     # Standard GARCH (only where not NaN — training window)
-    baseline_valid = np.isfinite(baselinel_sigma2)
     ax.plot(hybrid_ts[baseline_valid], baselinel_sigma2[baseline_valid],
             color="#2c6e49", linewidth=1.1, alpha=0.9,
             label="Standard GARCH(1,1)  $\\hat{\\sigma}_t^2$", zorder=3)
