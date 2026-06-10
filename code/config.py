@@ -30,7 +30,7 @@ DUNE_DIR                = os.path.join(DATA_DIR, "ONCHAIN")     # here all query
 AGGREGATE_OUTPUT        = os.path.join(DATA_DIR, "final")       # for the 5min aggregation
 AGGREGATED_DATA         = os.path.join(AGGREGATE_OUTPUT, "aggregated_5min_data.csv")
 
-RESULTS_DIR             = os.path.join(BASE_DIR, "model_results")
+RESULTS_DIR             = os.path.join(BASE_DIR, "..", "model_results")
 TRAIN_RESULTS           = os.path.join(RESULTS_DIR, "training_results.txt")
 GARCH_OUTPUT            = os.path.join(RESULTS_DIR, "garch_output.csv")
 BEST_MODEL              = os.path.join(RESULTS_DIR, "best_model.pt")        
