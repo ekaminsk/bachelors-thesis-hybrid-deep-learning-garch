@@ -18,7 +18,7 @@ from config         import RESULTS_DIR, HIDDEN_LAYERS, LEARNING_RATE, WEIGHT_DEC
 from data           import load_data
 from model          import GARCHNet
 from garch_baseline import fit_standard_garch
-import evaluate
+import evaluate     # type: ignore
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
