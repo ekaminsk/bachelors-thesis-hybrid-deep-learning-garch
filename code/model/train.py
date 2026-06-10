@@ -192,7 +192,7 @@ def main():
             model, X, r, gap, train_end
         )
 
-    omega_val = torch.nn.functional.softplus(model.omega).item()
+    omega_val = torch.nn.functional.softplus(model.omega_raw).item()
 
     print("\n" + "=" * 60)
     print(f"Best epoch      : {best_epoch}")
