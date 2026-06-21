@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from statsmodels.graphics.tsaplots import plot_acf
-from config import EVALUATE_DIR, TRAIN_RESULTS, GARCH_OUTPUT, BEST_MODEL, MODEL_CONFIG, PERMUTATION_REPETITIONS, ACF_LAGS
+from config import EVALUATE_DIR, TRAIN_RESULTS, GARCH_OUTPUT, BEST_MODEL, MODEL_CONFIG, PERMUTATION_REPETITIONS, ACF_LAGS, PLOTS_DIR
 from data  import load_data, FEATURE_COLS
 from model import GARCHNet
 
@@ -29,7 +29,7 @@ os.makedirs(EVALUATE_DIR, exist_ok=True)                 # in case, not necessar
 # ─────────────────────────────────────────────────────────────────────────────
 
 def savefig(name: str):
-    path = os.path.join(EVALUATE_DIR, name)                # still decide to put it in plot folder, but under different naming
+    path = os.path.join(PLOTS_DIR, name)                # still decide to put it in plot folder, but under different naming
     plt.savefig(path, dpi=150, bbox_inches="tight")
     plt.close()
     print(f"  saved: {path}")
@@ -341,6 +341,7 @@ def main():
 
     print("\n" + "=" * 60)
     print(f"All outputs saved to: {EVALUATE_DIR}")
+    print(f"All plots saved to: {PLOTS_DIR}")
     print("=" * 60)
 
 
