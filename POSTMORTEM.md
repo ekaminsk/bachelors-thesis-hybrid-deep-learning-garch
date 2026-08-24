@@ -1,6 +1,6 @@
 # Postmortem: Hybrid Deep Learning GARCH for Stablecoin Volatility Forecasting
 
-This document records what went wrong in this project, why, and what the next steps would be. Decisions are evaluated once with information *at the time* and once *in hindsight*. As the thesis is an official university assignment with a deadline, new knowledge that I acquired after submission of this thesis would fundamentally impact a rerun. Thus, the thought process at the time needs to be evaluated given contemporaneous knowledge.
+This document records what went wrong in this project, why, and what the next steps would be. Decisions are evaluated both with information *at the time* and *in hindsight*. As the thesis is an official university assignment with a deadline, new knowledge that I acquired after submission of this thesis would fundamentally impact a rerun. Thus, the thought process at the time needs to be evaluated given contemporaneous knowledge.
 
 > Companion reading: 📝 [README](README.md) for the project overview · 📓 [Data diagnosis notebook](notebooks/diagnostic_test.ipynb) for statistical evidence · 📄 Chapter 6.4 of the [Thesis paper](papers/thesis.pdf) for formal discussion of limitations
 
@@ -61,11 +61,11 @@ I only call this an incident because it did not affect the outcome of the thesis
 
 In hindsight, there are a couple of changes I would make if I were to rerun this thesis sorted by relevance:
 
-1. **Check the data before building anything.** Run an ARCH LM or Ljung-Box test before committing time to building a model that does not work. Realistically, this would not have saved the thesis, but it would have changed what I built. The reason is that Uniswap pool data, liquidity data, and tick data appear to not be historically queriable, while swaps, mints, and burns are. Similarly, CEX order book data is not historically queriable.
+1. **Check the data before building anything.** Run an ARCH LM or Ljung-Box test before committing time to building a model that does not work. Realistically, this would not have saved the thesis, but it would have changed what I build for a rerun. For the longest time, I believed that there were insurmountable barriers in data availability, i.e., no available historical DEX pool data, tick data, or mints / burns data. Turns out, it is historically queryable back to May, 2021. The CEX order book is ephemeral
 
 2. **Make sure the data collection architecture never breaks.** Working with data gaps introduces unnecessary issues, which now that I am not bound by VPN issues can be completely avoided. Alternatively, if I were still in China, I would use a virtual private server (e.g., in Germany) to run data collection and access it through a VPN. I remember thinking about the VPS solution during my thesis too, but I unfortunately decided against it since I thought the VPN would hold.
 
-3. **Change the pair or sample a more turbulent market.** As discussed in *root causes* 1 and 2, I could either change to a different currency pair, such as ETH/USDC, and do the conditional mean estimation or attempt to rerun the USDC/USDT pair with a sample from a more volatile period. There are merits to both, and the latter is only realistic if historical data from 2023 or 2022 is easily queriable. To run the same model on a different asset pair, one would obviously have to estimate the mean through ARMA or related models and then test the benchmark GARCH and hybrid GARCH relatively against each other on MSE, RMSE, or MAE.  
+3. **Change the pair or sample a more turbulent market.** As discussed in *root causes* 1 and 2, I could either change to a different currency pair, such as ETH/USDC, and do the conditional mean estimation or attempt to rerun the USDC/USDT pair with a sample from a more volatile period; there are merits to both, if the rerun would not focus on stablecoins. To run the same model on a different asset pair, one would obviously have to estimate the mean through ARMA or related models and then test the benchmark GARCH and hybrid GARCH relatively against each other on MSE, RMSE, or MAE.  
 
 4. **Collect more observations.** Pretty self-explanatory, as explained in *root cause* 2. The only caveat is that DuneAnalytics operates on credits for their queries. Therefore, the queries either need to be trimmed down or run over different months. 
 
@@ -90,7 +90,7 @@ The methodology was sound, and it is worth keeping intact, as the issue lies wit
 
 2. **The data collection setup must work continuously without interruptions.** Having gapless data would have allowed me much more freedom in choosing architecture and simplified the cleaning substantially. Also, it would have removed the need to reset to unconditional variance every time I had a gap. If that means setting up a VPS, it is worth it.
 
-3. **Know what data is ephemeral and what can be queried retrospectively or reconstructed.** I started my data collection quite late because, for the longest time, I thought I could get historical data for order books and Uniswap. Stream the ephemeral data and reconstruct as much as possible.
+3. **Know what data is ephemeral and what can be queried retrospectively or reconstructed.** I started my data collection quite late because, for the longest time, I thought I could get historical data for order books and Uniswap, but while writing the thesis I could not find the workaround I now know. Stream the ephemeral data and spend time finding a way to reconstruct as much as possible.
 
 4. **Never use softmax on signals that can have multiple economic effects.** Specific, but probably useful in the long run. Applies to any attribution mechanism that forces a zero-sum game as well.
 
