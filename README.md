@@ -148,7 +148,7 @@ The following are some of the limitations and considerations about the results, 
   type         = {Bachelor's thesis},
   school       = {Peking University and University of Mannheim},
   note         = {Dual-degree program},
-  url          = {...},
+  url          = {https://github.com/ekaminsk/bachelors-thesis-hybrid-deep-learning-garch/blob/main/papers/thesis.pdf},
   language     = {en}
 }
 ```
