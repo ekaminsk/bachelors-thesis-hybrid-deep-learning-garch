@@ -6,7 +6,7 @@ This is the log for rerunning this project. I will keep updates in here before c
 
 Immediately, I thnik that I need a Dune query to output the corresponding block to each 5min interval aligned to UTC clock. This will then be inputted into a new [univ3_pool_historical.py](code/data/univ3_pool_historical.py). The issue now is that I am running into the same Dune credit constraint I had while querying for my thesis, but since I did not use all the data I queried from Dune back then, I can just slim down my queries and save the new code in [dune_queries_rerun.sql](code/data/dune_queries_rerun.sql).
 
-### Dune Query
+### Dune Query 0 - Getting Historical Block Numbers
 
 Prices in DEX are updated with each new block that becomes indexed. Thus, to find the pool price at a given time, I need to look at the block that came before the given time. For example, if I need the price for the 2023-01-01 00:30:00 and I only have a block at 00:29:00 and 00:31:00, then the former holds the correct price information. As such, my query needs to give me block with the minimal timestamp smaller/equal to the desired timestamp. 
 
@@ -14,6 +14,13 @@ Prices in DEX are updated with each new block that becomes indexed. Thus, to fin
 
 The query now works. It calculates window_end differently than my other queries, because I wanted to try something new and they have the same operations. Choosing the block closest to window_end is done by row_number() over partition by window_end. 
 
+### Rebuilding Dune Queries 1-6
+
+One thing that I have realized is that I am not acutally using most of the data that I collect from Dune. Therefore it would make sense to just cut it all. Especially now that I will collect a much, much longer period and add the block query. All that I need to do here is to check what I am aggergating in aggregate_5min.py and remove the rest.
+
+**Query 1** I am removing total_token_amount and the avg/min/max/median_usd_per_transfer.
+
+**Query 2** 
 
 ## 24.08.2026 - Figuring out if I can somehow pull data historically
 
