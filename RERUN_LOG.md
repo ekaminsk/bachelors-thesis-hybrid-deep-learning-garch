@@ -2,6 +2,13 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 25.08.2026 - Designing historical data collection system
+
+Immediately I think that I need a Dune query to tell me the exact block number at the end of a 5 min window, which feeds it into the data collection code. 
+
+
+
+
 ## 24.08.2026 - Figuring out if I can somehow pull data historically
 
 So it appears that I might be able to filter for blocks in the graphql query. The pool query would look the following
