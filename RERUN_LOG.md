@@ -2,6 +2,29 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 26.08.2026 - Continuing the Dune Query rebuild
+
+### Aggregation code
+
+Before building the next query, I am realizing that I also can rebuild the aggeregate_5min.py, as I am not using some of the data outputted by the aggregation step. 
+
+- **CEX:** First I remove all the CEX loaders, since I did not use Kline data in my model anyways and I am not going to collect orderbook data due to time constraints. 
+- **DEX Kline:** For DEX Kline data I only used volume-based inputs (volume, imbalance, large trades), so I am removing all price related metrics. 
+- **DEX Swaps:** I also did not use any of the dex_swap_... metrics.
+- **DEX Pool:** I only used dex_pool_liquidity and dex_pool_tvl_usd 
+- **DEX Ticks:** Only keeping dex_ticks_total_liq_gross, dex_ticks_net_liq_above, dex_ticks_net_liq_below, and dex_ticks_n_active
+- **DEX Liquidityprovider:** Only keeping dex_lp_net_liq_change, dex_lp_n_mints, and dex_lp_n_burns
+- **Dune Whale transfers:** Removing the transfer_counts from pivot
+- **Dune CEX flows:** Removing transfer_counts from pivot
+- **Dune Gas:** Only keeping dune_gas_base_fee_gwei, dune_gas_tip_p50_gwei,
+dune_gas_tip_p80_gwei, and dune_gas_effective_gwei
+- **Dune mempool:** I collected so much, yet am only using two metrics, the dune_mempool_congestion_score and dune_mempool_base_fee_change
+- **Dune block:** Only using dune_block_utilization and dune_block_pct_near_full
+- **Dune supply changes:** Only using total_token_amounts
+
+Overall, this cuts down the aggergation step drastically. 
+
+
 ## 25.08.2026 - Designing historical data collection system
 
 Immediately, I thnik that I need a Dune query to output the corresponding block to each 5min interval aligned to UTC clock. This will then be inputted into a new [univ3_pool_historical.py](code/data/univ3_pool_historical.py). The issue now is that I am running into the same Dune credit constraint I had while querying for my thesis, but since I did not use all the data I queried from Dune back then, I can just slim down my queries and save the new code in [dune_queries_rerun.sql](code/data/dune_queries_rerun.sql).
@@ -18,9 +41,7 @@ The query now works. It calculates window_end differently than my other queries,
 
 One thing that I have realized is that I am not acutally using most of the data that I collect from Dune. Therefore it would make sense to just cut it all. Especially now that I will collect a much, much longer period and add the block query. All that I need to do here is to check what I am aggergating in aggregate_5min.py and remove the rest.
 
-**Query 1** I am removing total_token_amount and the avg/min/max/median_usd_per_transfer.
-
-**Query 2** 
+**Query 1:** I am removing total_token_amount and the avg/min/max/median_usd_per_transfer.
 
 ## 24.08.2026 - Figuring out if I can somehow pull data historically
 
