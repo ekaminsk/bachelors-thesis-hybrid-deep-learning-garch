@@ -25,9 +25,9 @@ dune_gas_tip_p80_gwei, and dune_gas_effective_gwei
 Overall, this cuts down the aggergation step drastically. 
 
 ### Dune queries
-Now that I can better tell, what I actually need in data, it is easier to rewrite the dune queries
+Now that I can better tell, what I actually need in data, it is easier to rewrite the dune queries.
 
-**Query 2:** Cut down 
+**Query 2:** Cut down most metrics (avg/max/min/medium), net_flows, and transaction_count, as I am not using them in my model. Also removed unneccesary filtration; there is no need to filter for both USDT/USDC and their unique smart contract ID, especially after filtering for ethereum.
 
 ## 25.08.2026 - Designing historical data collection system
 
