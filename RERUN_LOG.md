@@ -8,8 +8,8 @@ This is the log for rerunning this project. I will keep updates in here before c
 
 Before building the next query, I am realizing that I also can rebuild the aggeregate_5min.py, as I am not using some of the data outputted by the aggregation step. 
 
-- **CEX:** First I remove all the CEX loaders, since I did not use Kline data in my model anyways and I am not going to collect orderbook data due to time constraints. 
-- **DEX Kline:** For DEX Kline data I only used volume-based inputs (volume, imbalance, large trades), so I am removing all price related metrics. 
+- **CEX:** First I remove all the CEX loaders, since I did not use Kline data in my model anyway and I am not going to collect orderbook data due to time constraints. 
+- **DEX Kline:** For DEX Kline data I only used volume-based inputs (volume, imbalance, large trades), so I am removing all price-related metrics. 
 - **DEX Swaps:** I also did not use any of the dex_swap_... metrics.
 - **DEX Pool:** I only used dex_pool_liquidity and dex_pool_tvl_usd 
 - **DEX Ticks:** Only keeping dex_ticks_total_liq_gross, dex_ticks_net_liq_above, dex_ticks_net_liq_below, and dex_ticks_n_active
@@ -17,21 +17,23 @@ Before building the next query, I am realizing that I also can rebuild the agger
 - **Dune Whale transfers:** Removing the transfer_counts from pivot
 - **Dune CEX flows:** Removing transfer_counts from pivot
 - **Dune Gas:** Only keeping dune_gas_base_fee_gwei, dune_gas_tip_p50_gwei,
-dune_gas_tip_p80_gwei, and dune_gas_effective_gwei
-- **Dune mempool:** I collected so much, yet am only using two metrics, the dune_mempool_congestion_score and dune_mempool_base_fee_change
+dune_gas_tip_p80_gwei and dune_gas_effective_gwei
+- **Dune mempool:** I collected so much yet am only using two metrics, the dune_mempool_congestion_score and dune_mempool_base_fee_change
 - **Dune block:** Only using dune_block_utilization and dune_block_pct_near_full
 - **Dune supply changes:** Only using total_token_amounts
 
-Overall, this cuts down the aggergation step drastically. 
+Overall, this cuts down the aggregation step drastically. 
 
 ### Dune queries
-Now that I can better tell, what I actually need in data, it is easier to rewrite the dune queries.
+Now that I can better tell what I actually need in data, it is easier to rewrite the Dune queries.
 
-**Query 2:** Cut down most metrics (avg/max/min/medium), net_flows, and transaction_count, as I am not using them in my model. Also removed unneccesary filtration; there is no need to filter for both USDT/USDC and their unique smart contract ID, especially after filtering for ethereum.
+**Query 2:** Cut down most metrics (avg/max/min/medium), net_flows, and transaction_count, as I am not using them in my model. Also removed unnecessary filtration; there is no need to filter for both USDT/USDC and their unique smart contract ID, especially after filtering for ethereum.
 
-**Query 3:** Aside from removing all the metrics that I am not using, I ran into a monsterous bug: The Ethereum blockchain has different transaction types, one that has a priority fee / tip component in their gas (EIP 1559) and other types, which do not have that split fee. When I built this query, I connected Claude through an MCP to Dune, because searching through their tables was too much work. And Claude built the condition 
+**Query 3:** Aside from removing all the metrics that I am not using, I ran into a monstrous bug: The Ethereum blockchain has different transaction types, one that has a priority fee / tip component in their gas (EIP 1559) and other types, which do not have that split fee. When I built this query, I connected Claude through an MCP to Dune, because searching through their tables was too much work. And Claude built the condition
 > CASE WHEN type = '2' THEN CAST(priority_fee_per_gas AS double) / 1e9 END
-Turns out, there is no type = '2' in that table. What I would have needed was type = 'DynamicFee', so naturally in my collection, each entry had priority_fee_per_gas as a NULL. Again, didn't change much with the lack of ARCH effects, but good thing I am catching this.
+Turns out, there is no type = '2' in that table. What I would have needed was type = 'DynamicFee,' so naturally in my collection, each entry had priority_fee_per_gas as a NULL. Again, it didn't change much with the lack of ARCH effects, but it's a good thing I am catching this.
+
+**Query 4:** Very simple, just removed everything aside from avg_utilization and pct_blocks_near_full.
 
 
 ## 25.08.2026 - Designing historical data collection system

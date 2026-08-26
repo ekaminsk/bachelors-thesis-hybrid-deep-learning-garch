@@ -160,3 +160,26 @@ SELECT
 FROM raw_gas_data r
 LEFT JOIN transaction_priority_fee t ON r.window_end = t.window_end
 ORDER BY r.window_end asc;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- QUERY 4 (ID: 6763559) Gas Used Per Block & Block Utilization 
+-- ───────────────────────────────────────────────────────────────────────────
+
+SELECT 
+    date_trunc('minute', time)
+        - interval '1' minute * MOD(minute(time), 5)
+        + interval '5' minute             AS window_end,
+    AVG(CAST(gas_used as double) / CAST(gas_limit as double))   
+        AS avg_utilization,
+    CAST(
+        SUM(CASE WHEN CAST(gas_used AS double) / CAST(gas_limit AS double) > 0.8
+            THEN 1 ELSE 0 END) AS double
+    ) / COUNT(*)                                                    
+        AS pct_blocks_near_full
+FROM ethereum.blocks
+WHERE time >= CAST('{{start_date}}' AS TIMESTAMP)
+    AND time <  CAST('{{end_date}}'   AS TIMESTAMP)
+GROUP BY 1
+ORDER BY window_end asc;
+
