@@ -29,6 +29,11 @@ Now that I can better tell, what I actually need in data, it is easier to rewrit
 
 **Query 2:** Cut down most metrics (avg/max/min/medium), net_flows, and transaction_count, as I am not using them in my model. Also removed unneccesary filtration; there is no need to filter for both USDT/USDC and their unique smart contract ID, especially after filtering for ethereum.
 
+**Query 3:** Aside from removing all the metrics that I am not using, I ran into a monsterous bug: The Ethereum blockchain has different transaction types, one that has a priority fee / tip component in their gas (EIP 1559) and other types, which do not have that split fee. When I built this query, I connected Claude through an MCP to Dune, because searching through their tables was too much work. And Claude built the condition 
+> CASE WHEN type = '2' THEN CAST(priority_fee_per_gas AS double) / 1e9 END
+Turns out, there is no type = '2' in that table. What I would have needed was type = 'DynamicFee', so naturally in my collection, each entry had priority_fee_per_gas as a NULL. Again, didn't change much with the lack of ARCH effects, but good thing I am catching this.
+
+
 ## 25.08.2026 - Designing historical data collection system
 
 Immediately, I thnik that I need a Dune query to output the corresponding block to each 5min interval aligned to UTC clock. This will then be inputted into a new [univ3_pool_historical.py](code/data/univ3_pool_historical.py). The issue now is that I am running into the same Dune credit constraint I had while querying for my thesis, but since I did not use all the data I queried from Dune back then, I can just slim down my queries and save the new code in [dune_queries_rerun.sql](code/data/dune_queries_rerun.sql).

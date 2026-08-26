@@ -110,3 +110,53 @@ FROM raw_data
 WHERE flow_type IN ('Inflow', 'Outflow')
 GROUP BY 1, 2, 3
 ORDER BY window_end asc, token_symbol, total_usd desc;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- QUERY 3 (ID: 6763557) Gas Price Time Series (Base + Priority Fee) 
+-- ───────────────────────────────────────────────────────────────────────────
+
+WITH raw_gas_data AS(
+    SELECT
+        date_trunc('minute', time)
+            - interval '1' minute * MOD(minute(time), 5)
+            + interval '5' minute             AS window_end,
+        AVG(gas_used)/1e9                     AS avg_base_fee_gwei
+    FROM ethereum.blocks
+    WHERE time >= CAST('{{start_date}}' AS TIMESTAMP)
+        AND time <  CAST('{{end_date}}'   AS TIMESTAMP)
+    GROUP BY 1
+),
+transaction_priority_fee AS(
+    SELECT
+        date_trunc('minute', block_time)
+            - interval '1' minute * MOD(minute(block_time), 5)
+            + interval '5' minute             AS window_end,
+        
+        APPROX_PERCENTILE(
+            CASE WHEN type = 'DynamicFee' 
+                THEN CAST(priority_fee_per_gas AS double) / 1e9 END, 0.5)
+                AS priority_fee_p50_gwei,
+        
+        APPROX_PERCENTILE(
+            CASE WHEN type = 'DynamicFee' 
+                THEN CAST(priority_fee_per_gas AS double) / 1e9 END, 0.8)
+                AS priority_fee_p80_gwei
+    
+    FROM ethereum.transactions
+    WHERE block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+        AND block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+    GROUP BY 1
+    ORDER BY window_end asc
+)
+
+SELECT 
+    r.window_end,
+    r.avg_base_fee_gwei,
+    t.priority_fee_p50_gwei,
+    t.priority_fee_p80_gwei,
+    r.avg_base_fee_gwei + COALESCE(t.priority_fee_p50_gwei,0) 
+        AS approx_effective_gas_gwei
+FROM raw_gas_data r
+LEFT JOIN transaction_priority_fee t ON r.window_end = t.window_end
+ORDER BY r.window_end asc;
