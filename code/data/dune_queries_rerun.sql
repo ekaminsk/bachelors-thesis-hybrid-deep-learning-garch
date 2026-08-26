@@ -76,3 +76,37 @@ SELECT
 FROM raw_transfers
 GROUP BY 1, 2, 3
 ORDER BY window_end ASC, token, flow_direction;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- QUERY 2 (ID: 6763555) CEX Inflows and Outflows 
+-- ───────────────────────────────────────────────────────────────────────────
+
+WITH raw_data AS(
+    SELECT
+        block_time,
+        date_trunc('minute', block_time)
+            - interval '1' minute * MOD(minute(block_time), 5)
+            + interval '5' minute             AS window_end,
+        amount_usd,
+        token_symbol,
+        flow_type
+    FROM cex.flows
+    WHERE
+        blockchain = 'ethereum'
+    AND (token_address = 0xdac17f958d2ee523a2206206994597c13d831ec7 
+        OR token_address = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48) 
+        AND block_time   >= CAST('{{start_date}}' AS TIMESTAMP)
+        AND block_time   <  CAST('{{end_date}}'   AS TIMESTAMP)
+)
+
+SELECT
+    window_end,
+    token_symbol,
+    flow_type,
+    SUM(amount_usd)   AS total_usd
+
+FROM raw_data
+WHERE flow_type IN ('Inflow', 'Outflow')
+GROUP BY 1, 2, 3
+ORDER BY window_end asc, token_symbol, total_usd desc;

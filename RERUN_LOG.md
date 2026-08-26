@@ -24,6 +24,10 @@ dune_gas_tip_p80_gwei, and dune_gas_effective_gwei
 
 Overall, this cuts down the aggergation step drastically. 
 
+### Dune queries
+Now that I can better tell, what I actually need in data, it is easier to rewrite the dune queries
+
+**Query 2:** Cut down 
 
 ## 25.08.2026 - Designing historical data collection system
 
