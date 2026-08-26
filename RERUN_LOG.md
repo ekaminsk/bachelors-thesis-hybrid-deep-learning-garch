@@ -35,6 +35,8 @@ Turns out, there is no type = '2' in that table. What I would have needed was ty
 
 **Query 4:** Very simple, just removed everything aside from avg_utilization and pct_blocks_near_full.
 
+**Query 5:** Similar to query 3; remove unneccesary metrics & change type = '2' to type = 'DynamicFee'.
+
 
 ## 25.08.2026 - Designing historical data collection system
 

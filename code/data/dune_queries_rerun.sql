@@ -183,3 +183,63 @@ WHERE time >= CAST('{{start_date}}' AS TIMESTAMP)
 GROUP BY 1
 ORDER BY window_end asc;
 
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- QUERY 5 (ID: 6763560) Mempool Congestion Proxies
+-- ───────────────────────────────────────────────────────────────────────────
+
+WITH block_metrics AS (
+    SELECT
+        date_trunc('minute', time)
+            - interval '1' minute * MOD(minute(time), 5)
+            + interval '5' minute           AS window_end,
+        AVG(CAST(base_fee_per_gas / 1e9 AS double))
+            AS avg_base_fee_gwei,
+        AVG(CAST(gas_used AS double) / CAST(gas_limit AS double))   
+            AS avg_fill_ratio  
+    FROM ethereum.blocks
+    WHERE time >= CAST('{{start_date}}' AS TIMESTAMP)
+      AND time <  CAST('{{end_date}}'   AS TIMESTAMP)
+    GROUP BY 1
+),
+fee_metrics AS(
+    SELECT 
+        date_trunc('minute', block_time)
+            - interval '1' minute * MOD(minute(block_time), 5)
+            + interval '5' minute           AS window_end,
+        APPROX_PERCENTILE(
+            CASE WHEN type = 'DynamicFee' THEN CAST(priority_fee_per_gas AS double) / 1e9 END, 0.8
+        ) - APPROX_PERCENTILE(
+            CASE WHEN type = 'DynamicFee' THEN CAST(priority_fee_per_gas AS double) / 1e9 END, 0.1
+        )                                                           
+            AS priority_fee_spread_gwei
+    FROM ethereum.transactions
+    WHERE block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+        AND block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+    GROUP BY 1
+),
+combined AS(
+    SELECT
+        b.window_end,
+        b.avg_base_fee_gwei,
+        b.avg_fill_ratio,
+        f.priority_fee_spread_gwei,
+        
+        (b.avg_base_fee_gwei - LAG(b.avg_base_fee_gwei, 1) OVER (ORDER BY b.window_end))
+        / NULLIF(LAG(b.avg_base_fee_gwei, 1) OVER (ORDER BY b.window_end), 0)
+            AS base_fee_pct_change
+
+    FROM block_metrics b
+    LEFT JOIN fee_metrics f ON b.window_end = f.window_end
+)
+SELECT
+    window_end,
+    base_fee_pct_change,
+    LEAST(1.0,
+        avg_fill_ratio * 0.4
+        + CASE WHEN base_fee_pct_change > 0 THEN 0.3 ELSE 0.0 END
+        + LEAST(COALESCE(priority_fee_spread_gwei, 0), 20.0) / 20.0 * 0.3
+    )     
+        AS congestion_score
+FROM combined
+ORDER BY window_end asc;
