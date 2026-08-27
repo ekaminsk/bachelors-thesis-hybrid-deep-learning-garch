@@ -243,3 +243,91 @@ SELECT
         AS congestion_score
 FROM combined
 ORDER BY window_end asc;
+
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- QUERY 6 (ID: 6763561) On-Chain Mints and Burns
+-- ───────────────────────────────────────────────────────────────────────────
+
+WITH usdc_mints AS (
+    SELECT
+        evt_block_time  AS event_time,
+        'USDC'          AS token,
+        'mint'          AS event_type,
+        CAST(amount AS double) / 1e6  AS token_amount
+    FROM circle_ethereum.usdc_evt_mint
+    WHERE evt_block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+      AND evt_block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+),
+
+usdc_burns AS (
+    SELECT
+        evt_block_time,
+        'USDC',
+        'burn',
+        CAST(amount AS double) / 1e6
+    FROM circle_ethereum.usdc_evt_burn
+    WHERE evt_block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+      AND evt_block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+),
+
+usdt_mints AS (
+    SELECT
+        evt_block_time,
+        'USDT',
+        'mint',
+        CAST(amount AS double) / 1e6
+    FROM tether_ethereum.tether_usd_evt_issue
+    WHERE evt_block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+      AND evt_block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+),
+
+usdt_burns AS (
+    SELECT
+        evt_block_time,
+        'USDT',
+        'burn',
+        CAST(amount AS double) / 1e6
+    FROM tether_ethereum.tether_usd_evt_redeem
+    WHERE evt_block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+      AND evt_block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+),
+
+usdt_burn_blacklist AS (
+    SELECT
+        evt_block_time,
+        'USDT',
+        'burn_blacklist',
+        CAST(_balance AS double) / 1e6
+    FROM tether_ethereum.tether_usd_evt_destroyedblackfunds
+    WHERE evt_block_time >= CAST('{{start_date}}' AS TIMESTAMP)
+      AND evt_block_time <  CAST('{{end_date}}'   AS TIMESTAMP)
+),
+
+all_events AS (
+    SELECT * FROM usdc_mints
+    UNION ALL SELECT * FROM usdc_burns
+    UNION ALL SELECT * FROM usdt_mints
+    UNION ALL SELECT * FROM usdt_burns
+    UNION ALL SELECT * FROM usdt_burn_blacklist
+),
+
+agg_5min AS (
+    SELECT
+        date_trunc('minute', event_time)
+            - interval '1' minute * MOD(minute(event_time), 5)
+            + interval '5' minute           AS window_end,
+        token,
+        event_type,
+        SUM(token_amount)                   AS total_token_amount
+    FROM all_events
+    GROUP BY 1, 2, 3
+)
+
+SELECT
+    window_end,
+    token,
+    event_type,
+    total_token_amount
+FROM agg_5min
+ORDER BY window_end ASC, token, event_type;

@@ -2,6 +2,13 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 27.08.2026 - Finishing the Dune Query rebuild
+
+Opening Dune I am prompted with the message that starting September 10th, the free plan, which I have been using for this thesis, will no longer work as before. As far as I understand, creating new queries and running any queries and especially using an API to capture the data locally is going to now cost $349 per month. Thus, this rerun now has a strict deadline as I need Dune queries for both my DEX data (due to block_number for historical queries) and on-chain metrics.
+
+**Query 6:** Removed the avg/min/max metrics and net_cumulative_supply
+
+
 ## 26.08.2026 - Continuing the Dune Query rebuild
 
 ### Aggregation code
