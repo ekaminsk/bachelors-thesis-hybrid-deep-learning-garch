@@ -14,10 +14,85 @@ Further cleaning happens in aggregate_5min_rerun.py.
 
 While looking through GraphQL documentation and my rerun-aggregation, I am realizing a few things. 
 - First, by removing the unnecessary metrics from my aggregate_5min_rerun.py, I also need to remove these from the collection, since renaming the fields goes in order (i.e., if I have Klines with open, close, high, and low and those are aggregated to dex_open, dex_close, dex_high, and dex_low, then dropping metrics to only dex_open, dex_high now maps: open -> dex_open, close -> dex_high, high -> NULL, low -> NULL). 
-- Second, I can most likely summarize all three queries into one query. In the [GraphQL schema](https://github.com/Uniswap/v3-subgraph/blob/main/src/v3/schema.graphql) for Uniswap V3, mints, burns, and ticks all are derived from pool. But I need to try that out.
+- Second, I can most likely summarize all three queries into one query. In the [GraphQL schema](https://github.com/Uniswap/v3-subgraph/blob/main/src/v3/schema.graphql) for Uniswap V3, mints, burns, and ticks all are derivable from pool. But I need to try that out.
 
-The first thing I need to do is clean out which fields I actually need.
+The first thing I need to do is clean out which fields I actually need. Klines are much more annoying, since they are derived from raw swaps, so I would need to rebuild that too, if I want to clean up my rerun:
+```
+dex_price                           <->       sqrtPrice               *direct pool query*
 
+dex_pool_liquidity                  <->       liquidity               *direct pool query*
+dex_pool_tvl_usd                    <->       totalValueLockedUSD     *direct pool query*
+current_tick                        <->       tick                    *direct pool query*
+
+dex_ticks_total_liq_gross           <->       liquidityGross          *derived from tick query (sum over all ticks)*
+dex_ticks_net_liq_above             <->       liquidityNet & tickIdx  *derived as sum(liqNet) if current_tick < tickIdx
+dex_ticks_net_liq_below             <->       liquidityNet & tickIdx  *derived as sum(liqNet) if current_tick > tickIdx
+dex_ticks_n_active                  <->       len(ticks)              *derived as #entries in query
+
+dex_lp_net_liq_change               <->       amount                  *derived from burn/mint query*
+dex_lp_n_mints                      <->       len(mints)              *derived from burn/mint query*
+dex_lp_n_burns                      <->       len(burns)              *derived from burn/mint query*
+
+dex_klines_volume_usd               <->       volume_usd              *derived from swap query*
+dex_klines_n_swaps                  <->       n_swaps                 *derived from swap query*
+dex_klines_imbalance                <->       imbalance               *derived from swap query*
+dex_klines_large_trades_count       <->       large_trades_count      *derived from swap query*
+dex_klines_large_trades_usd         <->       large_trades_usd        *derived from swap query*
+```
+
+Turns out, this query is buildable, and I can take it further. Swaps also can be reverse-looked-up through pool, meaning that I can write one query combining the entire data collection:
+
+```
+query DataCollection($pool_id: ID!, $block_nr: Int!, $timestamp_begin: BigInt!, $tickHigh: BigInt!, $tickLow: BigInt!){
+  pool(id: $pool_id, 
+    block: {number: $block_nr}){
+    sqrtPrice,
+    totalValueLockedUSD,
+    liquidity,
+    tick,
+    ticks(
+      first: 100
+    	where: {tickIdx_gte: $tickLow, tickIdx_lte: $tickHigh}
+      orderBy: tickIdx
+      orderDirection: asc
+    ){     
+      liquidityGross,
+      liquidityNet,
+      tickIdx
+    },
+    mints(
+      first: 100
+      where: {timestamp_gte: $timestamp_begin}
+      orderBy: timestamp
+      orderDirection:desc
+    ){
+      timestamp,
+      amount
+    }
+  	burns(
+      first: 100
+      where: {timestamp_gte: $timestamp_begin}
+      orderBy: timestamp
+      orderDirection:desc
+    ){
+      timestamp,
+      amount
+    }
+    swaps(  
+      first: 100
+      where: {timestamp_gte: $timestamp_begin}
+      orderBy: timestamp
+      orderDirection: desc
+    ){
+      amountUSD,
+      timestamp,
+      amount0    
+    }
+  }
+}
+```
+
+This warrants renaming the univ3_pool_historical.py to univ3_rerun.py
 
 ## 27.08.2026 - Finishing the Dune Query rebuild
 
@@ -66,7 +141,7 @@ Turns out, there is no type = '2' in that table. What I would have needed was ty
 
 ## 25.08.2026 - Designing historical data collection system
 
-Immediately, I thnik that I need a Dune query to output the corresponding block to each 5min interval aligned to UTC clock. This will then be inputted into a new [univ3_pool_historical.py](code/data/univ3_pool_historical.py). The issue now is that I am running into the same Dune credit constraint I had while querying for my thesis, but since I did not use all the data I queried from Dune back then, I can just slim down my queries and save the new code in [dune_queries_rerun.sql](code/data/dune_queries_rerun.sql).
+Immediately, I thnik that I need a Dune query to output the corresponding block to each 5min interval aligned to UTC clock. This will then be inputted into a new [univ3_pool_historical.py](code/data/univ3_rerun.py). The issue now is that I am running into the same Dune credit constraint I had while querying for my thesis, but since I did not use all the data I queried from Dune back then, I can just slim down my queries and save the new code in [dune_queries_rerun.sql](code/data/dune_queries_rerun.sql).
 
 ### Dune Query 0 - Getting Historical Block Numbers
 
