@@ -2,6 +2,23 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 28.08.2026 - Building univ3_pool_historical.py
+
+First, I need to collect what I need this program to do. On a meta-level I need it to take a GraphQL query, connect to theGraph and run the query; take the result of said query and output it in CSV. More granularly: 
+- Take three GraphQL queries with fixed pool address (and low/high for ticks)
+- Take the block_number table at 5-minute intervals
+- Run each query for each 5-min interval (-> here I may run into credit constraints...)
+- sqrtPrice to Price
+- Either immediately append to a CSV or keep locally for a while, then add to CSV
+Further cleaning happens in aggregate_5min_rerun.py.
+
+While looking through GraphQL documentation and my rerun-aggregation, I am realizing a few things. 
+- First, by removing the unnecessary metrics from my aggregate_5min_rerun.py, I also need to remove these from the collection, since renaming the fields goes in order (i.e., if I have Klines with open, close, high, and low and those are aggregated to dex_open, dex_close, dex_high, and dex_low, then dropping metrics to only dex_open, dex_high now maps: open -> dex_open, close -> dex_high, high -> NULL, low -> NULL). 
+- Second, I can most likely summarize all three queries into one query. In the [GraphQL schema](https://github.com/Uniswap/v3-subgraph/blob/main/src/v3/schema.graphql) for Uniswap V3, mints, burns, and ticks all are derived from pool. But I need to try that out.
+
+The first thing I need to do is clean out which fields I actually need.
+
+
 ## 27.08.2026 - Finishing the Dune Query rebuild
 
 Opening Dune I am prompted with the message that starting September 10th, the free plan, which I have been using for this thesis, will no longer work as before. Instead, I will have a 14-day trial for the plus plan. As far as I understand, creating new queries and running any queries and especially using an API to capture the data locally is going to now cost $349 per month. Thus, this rerun now has a strict deadline (24th of September) as I need Dune queries for both my DEX data (due to block_number for historical queries) and on-chain metrics.
