@@ -27,6 +27,8 @@ If market structure is the real driver, a neural network conditioned on these fr
 ```text
 bachelors-thesis-hybrid-deep-learning-garch/
 ├── README.md                       <-- you are here
+├── POSTMORTEM.md                   <-- Limitations, lessons and next steps
+├── RERUN_LOG.md                    <-- Log of the current rerun
 ├── LICENSE
 ├── requirements.txt
 ├── code/                           <-- data pipeline, model, evaluation
