@@ -16,7 +16,7 @@ What my program needs to do:
 - IF I get an error message (e.g. index was pruned) I need to retry sending the request
 - Each response (= pool price) needs to be logged against window_end as the index and exported as CSV.
 
-After building a program that would query once per block I realized that that way I will run very quickly into credit constraints. So I rebuilt it using a batch query, hoping that "queries run" would count actual post requests, but turns out I am still paying credits for every single block I query...
+After building a program that would query once per block I realized that that way I will run very quickly into credit constraints. So I rebuilt it using a batch query, hoping that "queries run" would count actual post requests, but turns out I am still paying credits for every single block I query... Therefore I need to rebuild my query using swaps, similar to how I did it back during the thesis. Once I have a period with ARCH effects, I can also have a large query running, even across credit periods. Right now, for finding a period with ARCH effects I need speed as Dune is not going to be available soon.
 
 ## 28.08.2026 - Building univ3_pool_historical.py
 
