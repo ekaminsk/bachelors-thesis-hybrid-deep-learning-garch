@@ -2,6 +2,43 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 05.09.2026 - Continuing with uniswap data collection 
+
+Currently, running the query returns the following dictionary:
+
+```
+{
+  "data": {
+    "pool": {
+      "burns": [
+        "timestamp",
+        "amount"
+      ],
+      "liquidity",
+      "mints": [
+        "timestamp",
+        "amount"
+      ],
+      "sqrtprice",
+      "swaps": [
+        "amount0",
+        "amountUSD",
+        "timestamp"
+      ]
+      "tick"
+      "ticks": [
+        "liquidityGross",
+        "liquidityNet",
+        "tickIdx"
+      ],
+      "totalvaluelocked"
+    }
+  }
+}
+```
+Now there is an issue I should fix immediately. As far as I understand, the subgraph I am querying is indexed by different users. This means that the data I have available for querying depends on the indexer I pull when sending my query. From testing, I can conclude that there is at least one indexer, who has indexed far enough back to query data from 2023, but there is also an indexer who has pruned away the blocks I am time-traveling to. Simple fix is to add an 'if error' clause. 
+
+
 ## 28.08.2026 - Building univ3_pool_historical.py
 
 First, I need to collect what I need this program to do. On a meta-level I need it to take a GraphQL query, connect to theGraph and run the query; take the result of said query and output it in CSV. More granularly: 

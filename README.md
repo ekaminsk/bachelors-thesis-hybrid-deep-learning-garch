@@ -8,7 +8,7 @@ Currently, I am rerunning the model on a different, larger timeframe, and potent
 
 Author: **Edward Kaminsky**
 
-> Companion reading: 📄 [Thesis paper](papers/thesis.pdf) · 📓 [Data diagnosis notebook](notebooks/diagnostic_test.ipynb) (for statistical evidence) · 📝 [Postmortem](POSTMORTEM.md) (for a discussion of limitations) · 🔁 [Rerun Log](RERUN_LOG.md) (Up-to-date log of the rerun)
+> Companion reading: 📄 [Thesis paper](papers/thesis.pdf) · 📓 [Data diagnosis notebook](notebooks/diagnostic_test.ipynb) (for statistical evidence) · 📝 [Postmortem](POSTMORTEM.md) (for a discussion of limitations) · 🔁 [Rerun Log](rerun/RERUN_LOG.md) (Up-to-date log of the rerun)
 
 ---
 
@@ -28,7 +28,6 @@ If market structure is the real driver, a neural network conditioned on these fr
 bachelors-thesis-hybrid-deep-learning-garch/
 ├── README.md                       <-- you are here
 ├── POSTMORTEM.md                   <-- Limitations, lessons and next steps
-├── RERUN_LOG.md                    <-- Log of the current rerun
 ├── LICENSE
 ├── requirements.txt
 ├── code/                           <-- data pipeline, model, evaluation
@@ -38,8 +37,14 @@ bachelors-thesis-hybrid-deep-learning-garch/
 ├── notebooks/
 │   └── diagnostic_test.ipynb       <-- ARCH-LM, Ljung-Box, ACF diagnostics
 ├── figures/                        <-- result plots referenced below
-└── papers/
-    └── thesis.pdf                  <-- full writeup
+├── papers/
+│   └── thesis.pdf                  <-- full writeup
+└── rerun/                          <-- New code for the rerun
+    ├── RERUN_LOG.md                <-- Log of the current rerun
+    ├── code/
+    │   └── data/
+    └── notebooks/
+        └── rerun_ARCH_test.ipynb   <-- checking different timeframes for ARCH effects
 ```
 
 ## Data
