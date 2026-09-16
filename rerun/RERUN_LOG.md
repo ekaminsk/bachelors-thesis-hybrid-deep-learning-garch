@@ -16,6 +16,8 @@ What my program needs to do:
 - IF I get an error message (e.g. index was pruned) I need to retry sending the request
 - Each response (= pool price) needs to be logged against window_end as the index and exported as CSV.
 
+After building a program that would query once per block I realized that that way I will run very quickly into credit constraints. So I rebuilt it using a batch query, hoping that "queries run" would count actual post requests, but turns out I am still paying credits for every single block I query...
+
 ## 28.08.2026 - Building univ3_pool_historical.py
 
 First, I need to collect what I need this program to do. On a meta-level I need it to take a GraphQL query, connect to theGraph and run the query; take the result of said query and output it in CSV. More granularly: 
