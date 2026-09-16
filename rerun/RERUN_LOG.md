@@ -2,41 +2,11 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
-## 05.09.2026 - Continuing with uniswap data collection 
+## 16.09.2026 - Finding a timeframe with ARCH Effects
 
-Currently, running the query returns the following dictionary:
+Given that I am loosing access to Dune Analytics soon, I need to find a timeframe where I will definitely have ARCH effects and query all on-chain data asap. For that, all I need is to query DEX pool price data (I cannot proxy it by using CEX Klines) and run ARCH-LM / Ljung-Box tests on it. 
 
-```
-{
-  "data": {
-    "pool": {
-      "burns": [
-        "timestamp",
-        "amount"
-      ],
-      "liquidity",
-      "mints": [
-        "timestamp",
-        "amount"
-      ],
-      "sqrtprice",
-      "swaps": [
-        "amount0",
-        "amountUSD",
-        "timestamp"
-      ]
-      "tick"
-      "ticks": [
-        "liquidityGross",
-        "liquidityNet",
-        "tickIdx"
-      ],
-      "totalvaluelocked"
-    }
-  }
-}
-```
-Now there is an issue I should fix immediately. As far as I understand, the subgraph I am querying is indexed by different users. This means that the data I have available for querying depends on the indexer I pull when sending my query. From testing, I can conclude that there is at least one indexer, who has indexed far enough back to query data from 2023, but there is also an indexer who has pruned away the blocks I am time-traveling to. Simple fix is to add an 'if error' clause. 
+Having changed the structure of my repository a little bit by creating a rerun folder for easier accessability, I need to take care of all the links that now broke because of it. Moreover, I need a "new" config file.
 
 
 ## 28.08.2026 - Building univ3_pool_historical.py
