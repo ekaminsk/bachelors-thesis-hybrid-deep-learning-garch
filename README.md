@@ -4,9 +4,11 @@ This repository contains the code and analysis for my bachelor's thesis testing 
 
 The main result: the 12-day USDC/USDT sample shows no statistically significant ARCH effects, rendering both models unidentifiable. Nonetheless, the permutation feature importance still recovers a theoretically coherent hierarchy of price-impact and arbitrage-friction signals.
 
+Currently, I am rerunning the model on a different, larger timeframe, and potentially a different coin pair.
+
 Author: **Edward Kaminsky**
 
-> Companion reading: 📄 [Thesis paper](papers/thesis.pdf) · 📓 [Data diagnosis notebook](notebooks/diagnostic_test.ipynb) (for statistical evidence) · 📝 [Postmortem](POSTMORTEM.md) (for a discussion of limitations)
+> Companion reading: 📄 [Thesis paper](papers/thesis.pdf) · 📓 [Data diagnosis notebook](notebooks/diagnostic_test.ipynb) (for statistical evidence) · 📝 [Postmortem](POSTMORTEM.md) (for a discussion of limitations) · 🔁 [Rerun Log](RERUN_LOG.md) (Up-to-date log of the rerun)
 
 ---
 
@@ -83,7 +85,7 @@ Below are notes on the methodology that address the most likely first concerns a
 
 1. Clone the repo and create a virtual environment.
 ```bash
-   git clone https://github.com/<your-username>/bachelors-thesis-hybrid-deep-learning-garch.git
+   git clone https://github.com/ekaminsk/bachelors-thesis-hybrid-deep-learning-garch.git
    cd bachelors-thesis-hybrid-deep-learning-garch
    python -m venv venv
    source venv/bin/activate  # venv\Scripts\activate on Windows
