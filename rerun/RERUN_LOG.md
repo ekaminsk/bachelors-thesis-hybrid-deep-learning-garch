@@ -8,6 +8,13 @@ Given that I am loosing access to Dune Analytics soon, I need to find a timefram
 
 Having changed the structure of my repository a little bit by creating a rerun folder for easier accessability, I need to take care of all the links that now broke because of it. Moreover, I need a "new" config file.
 
+I'll pull the all the block numbers from 2022 January to 2026 September from Dune. I'll start searching in the year 2023. In March 2023, SVB collapsed and the USDC peg broke, so around that time I am hoping to find enough ARCH effects. 
+
+What my program needs to do:
+- Import Dune CSV and be able to truncate the 3.5 years into a timeframe I want to look at
+- Take block_numbers and feed those into a HTTP post request sending it to theGraph
+- IF I get an error message (e.g. index was pruned) I need to retry sending the request
+- Each response (= pool price) needs to be logged against window_end as the index and exported as CSV.
 
 ## 28.08.2026 - Building univ3_pool_historical.py
 

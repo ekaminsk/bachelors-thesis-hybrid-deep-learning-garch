@@ -7,3 +7,5 @@ input/
 .venv/
 collected_data/
 model_results/
+input_blocks.csv
+output_return_series.csv
