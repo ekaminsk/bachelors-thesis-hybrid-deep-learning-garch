@@ -2,6 +2,15 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 17.09.2026 - Building the swap-based ARCH Effects query
+My program needs to do:
+- Query swaps -> can only pick 1000 per query (~1 day)
+- Go into the result, pick out the swap that occured before a given 5-min interval
+- Save interval_end & price (after cleaning it up)
+
+I built [that](code/data/find_arch_effects/find_arch_effects.py) by querying swaps with the same pagination logic as univ3_swaps.py and then appending each entry to a dataframe. From there I left joined the raw swaps to a 5min grid using pd.merge_asof(direction="backwards").
+
+
 ## 16.09.2026 - Finding a timeframe with ARCH Effects
 
 Given that I am loosing access to Dune Analytics soon, I need to find a timeframe where I will definitely have ARCH effects and query all on-chain data asap. For that, all I need is to query DEX pool price data (I cannot proxy it by using CEX Klines) and run ARCH-LM / Ljung-Box tests on it. 
