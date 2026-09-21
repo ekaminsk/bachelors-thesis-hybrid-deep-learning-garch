@@ -19,8 +19,8 @@ from urllib3.util.retry import Retry
 BASE_PATH       = os.path.dirname(os.path.abspath(__file__)) 
 INPUT_PATH      = os.path.join(BASE_PATH, "input_blocks.csv")
 OUTPUT_PATH     = os.path.join(BASE_PATH, "output_return_series.csv")
-START_DATE      = "2023-01-01 00:00:00"             #YYYY-MM-DD HH:MM:SS
-END_DATE        = "2023-01-03 00:00:00"
+START_DATE      = "2023-01-31 23:55:00"             #YYYY-MM-DD HH:MM:SS
+END_DATE        = "2023-05-01 00:00:00"
 
 load_dotenv()
 UNISWAP_API_KEY = os.getenv("UNISWAP_API_KEY")
@@ -109,6 +109,7 @@ def pull_raw_data():
 
         cursor = batch[-1]["id"]
         page += 1
+        print(f"Collected Page {page}")
         time.sleep(0.25)
 
     print(f"Collected {len(all_swaps)} observations through {page+1} queries")
