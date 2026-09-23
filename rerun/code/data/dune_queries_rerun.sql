@@ -121,7 +121,7 @@ WITH raw_gas_data AS(
         date_trunc('minute', time)
             - interval '1' minute * MOD(minute(time), 5)
             + interval '5' minute             AS window_end,
-        AVG(gas_used)/1e9                     AS avg_base_fee_gwei
+        AVG(base_fee_per_gas)/1e9                     AS avg_base_fee_gwei
     FROM ethereum.blocks
     WHERE time >= CAST('{{start_date}}' AS TIMESTAMP)
         AND time <  CAST('{{end_date}}'   AS TIMESTAMP)
