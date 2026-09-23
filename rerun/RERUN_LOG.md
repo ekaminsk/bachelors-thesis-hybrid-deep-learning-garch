@@ -2,6 +2,14 @@
 
 This is the log for rerunning this project. I will keep updates in here before committing to organizing everything (potentially) under a new folder, new notebooks, a second paper, etc. This file is ordered in reverse chronological order, such that new updates are at the top.
 
+## 23.09.2026 - Analyzing 2023 USDC de-peg data
+I wrote a notebook, currently in the rerun folder analyzing price data on the 2023 USDC de-peg period between February 2023 and May 2023. What I did in order:
+- Visual comparison between price, return, and rolling std during 2023 and my 2026 thesis sample
+- Ran ACF and PACF on sub samples including and excluding the de-peg period, to check for autocorrelation in a normal market (before de-peg), highly volatile market (de-peg) and recovering market (after de-peg)
+- Ran ACF and PACF on a sample excluding extreme returns and visualized ACF and PACF on absolute returns instead of squared returns to remove the effect of extreme returns. Found typical signs of volatility clustering (decaying (partial) autocorrelations of previous periods)
+- Cleaned data by removing extreme swings (> 500bps bounces over two periods) and re-ran PACF and ACF
+- Started estimating a ARMA model
+
 ## 17.09.2026 - Building the swap-based ARCH Effects query
 My program needs to do:
 - Query swaps -> can only pick 1000 per query (~1 day)
@@ -9,6 +17,8 @@ My program needs to do:
 - Save interval_end & price (after cleaning it up)
 
 I built [that](code/data/find_arch_effects/find_arch_effects.py) by querying swaps with the same pagination logic as univ3_swaps.py and then appending each entry to a dataframe. From there I left joined the raw swaps to a 5min grid using pd.merge_asof(direction="backwards").
+
+Now all I need to do is to keep running data through statistic tests and searching for a timeframe with ARCH effects. I will rename each different timeframe I collect, such that it can be better distinguished in the notebook. 
 
 
 ## 16.09.2026 - Finding a timeframe with ARCH Effects
